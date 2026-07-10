@@ -71,12 +71,12 @@ export function Reading({ spread, cards, question }: { spread: DrawableSpread; c
                     )}
                     <p className="core">{item.r.core}</p>
                     {(() => {
-                      // 位置白話句：三張=過去/現在/建議；關係=我的狀態(present)/對方(僅牌義)/走向(建議)
+                      // 位置白話句：三張=過去/現在/建議；關係=我(present)/對方(other)/走向(建議)
                       const bridge =
                         spread === 'three'
                           ? [item.r.past, item.r.present, item.r.advice][i]
                           : spread === 'relation'
-                            ? [item.r.present, null, item.r.advice][i]
+                            ? [item.r.present, item.r.other, item.r.advice][i]
                             : item.r.advice
                       return bridge ? <p className="advice">💡 {bridge}</p> : null
                     })()}

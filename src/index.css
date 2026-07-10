@@ -82,7 +82,8 @@ body {
 .daily-label { color: var(--accent-bright); letter-spacing: 3px; font-size: 16px; }
 .daily-line { color: var(--text-dim); font-size: 13px; }
 
-.mode-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 16px 0; }
+.mode-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin: 16px 0; }
+@media (max-width: 560px) { .mode-cards { grid-template-columns: 1fr; } }
 .mode-card {
   background: linear-gradient(160deg, var(--panel-2), var(--panel));
   border: 1px solid var(--border);

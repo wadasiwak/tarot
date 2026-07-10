@@ -169,7 +169,7 @@ try {
   const relTitles = await page.$$eval('.position-head h3', (els) => els.map((e) => e.textContent))
   for (const t of ['我的狀態', '對方的狀態', '關係走向']) if (!relTitles.includes(t)) fail(`關係牌陣缺位置「${t}」`)
   const relBridges = await page.$$eval('.reading-card', (els) => els.map((e) => e.querySelector('.advice') !== null))
-  if (!relBridges[0] || relBridges[1] || !relBridges[2]) fail(`關係牌陣 💡 配置應為 [有,無,有]，實得 ${JSON.stringify(relBridges)}`)
+  if (!relBridges.every(Boolean)) fail(`關係牌陣三個位置都應有 💡 白話句，實得 ${JSON.stringify(relBridges)}`)
 
   // 8. 是非模式：verdict 徽章五值之一、理由非空
   await page.goto(`${BASE_URL}#r/yesno/13`)
