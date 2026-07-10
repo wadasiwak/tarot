@@ -5,6 +5,7 @@ import type { DrawableSpread } from '../lib/share'
 
 const MODES: { spread: DrawableSpread; emoji: string; desc: string }[] = [
   { spread: 'three', emoji: '🃏', desc: '過去・現在・未來，看一件事的來龍去脈' },
+  { spread: 'relation', emoji: '💞', desc: '我・對方・走向，看一段關係的兩端' },
   { spread: 'yesno', emoji: '⚖️', desc: '心裡想好一個是非題，抽一張看傾向' },
   { spread: 'choice', emoji: '🔀', desc: '兩個選項各抽一張，比較兩邊能量' },
 ]
@@ -45,9 +46,17 @@ export function Home() {
         ))}
       </div>
 
-      <button type="button" className="browse-link" onClick={() => go({ name: 'browse' })}>
-        📖 塔羅牌庫——78 張牌義隨時查
-      </button>
+      <div className="home-links">
+        <button type="button" className="browse-link" onClick={() => go({ name: 'browse' })}>
+          📖 塔羅牌庫——78 張牌義隨時查
+        </button>
+        <button type="button" className="browse-link" onClick={() => go({ name: 'learn' })}>
+          🎓 塔羅小學堂——十分鐘看懂花色與正逆位
+        </button>
+        <button type="button" className="browse-link" onClick={() => go({ name: 'journal' })}>
+          📅 每日回顧——月曆看你翻過的牌
+        </button>
+      </div>
 
       {recent.length > 0 && (
         <div className="recent">

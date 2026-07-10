@@ -9,6 +9,7 @@ import { shareUrl, type DrawableSpread } from '../lib/share'
 import { useApp } from '../state'
 import { CardFace } from './CardFace'
 import { CopyForAI } from './CopyForAI'
+import { ShareCardButton } from './ShareCardButton'
 
 // 結果頁：線上抽牌 / 手動輸入 / hash 直開三種來源共用
 export function Reading({ spread, cards, question }: { spread: DrawableSpread; cards: DrawnCard[]; question?: string }) {
@@ -69,11 +70,16 @@ export function Reading({ spread, cards, question }: { spread: DrawableSpread; c
                       </p>
                     )}
                     <p className="core">{item.r.core}</p>
-                    {spread === 'three' ? (
-                      <p className="advice">💡 {[item.r.past, item.r.present, item.r.advice][i]}</p>
-                    ) : (
-                      <p className="advice">💡 {item.r.advice}</p>
-                    )}
+                    {(() => {
+                      // 位置白話句：三張=過去/現在/建議；關係=我的狀態(present)/對方(僅牌義)/走向(建議)
+                      const bridge =
+                        spread === 'three'
+                          ? [item.r.past, item.r.present, item.r.advice][i]
+                          : spread === 'relation'
+                            ? [item.r.present, null, item.r.advice][i]
+                            : item.r.advice
+                      return bridge ? <p className="advice">💡 {bridge}</p> : null
+                    })()}
                     <button
                       type="button"
                       className="btn subtle"
@@ -95,6 +101,12 @@ export function Reading({ spread, cards, question }: { spread: DrawableSpread; c
         <button type="button" className="btn" onClick={share}>
           {copied ? '✓ 連結已複製' : '分享這次抽牌'}
         </button>
+        <ShareCardButton
+          title={def.name}
+          subtitle={new Date().toISOString().slice(0, 10)}
+          cards={cards}
+          positionTitles={cards.length > 1 ? def.positions.map((p) => p.title) : undefined}
+        />
         <CopyForAI spread={spread} cards={cards} question={question} />
         <button type="button" className="btn" onClick={() => go({ name: 'draw', spread })}>
           再抽一次

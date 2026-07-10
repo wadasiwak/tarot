@@ -12,6 +12,8 @@ export type View =
   | { name: 'reading'; spread: DrawableSpread; cards: DrawnCard[]; question?: string }
   | { name: 'browse' } // 78 張牌庫
   | { name: 'detail'; id: string; reversed: boolean }
+  | { name: 'journal' } // 每日一牌月曆回顧＋連續打卡
+  | { name: 'learn' } // 塔羅小學堂
 
 // URL hash 同步。⚠️ question 絕不進 URL（個資）。
 export function viewToHash(view: View): string {
@@ -30,6 +32,10 @@ export function viewToHash(view: View): string {
       return '#cards'
     case 'detail':
       return `#card/${view.id}${view.reversed ? '/r' : ''}`
+    case 'journal':
+      return '#journal'
+    case 'learn':
+      return '#learn'
   }
 }
 
@@ -53,6 +59,8 @@ export function hashToView(hash: string): View {
     return { name: 'home' }
   }
   if (head === 'cards' && a === undefined) return { name: 'browse' }
+  if (head === 'journal' && a === undefined) return { name: 'journal' }
+  if (head === 'learn' && a === undefined) return { name: 'learn' }
   if (head === 'card' && a && validId(a) && (b === undefined || b === 'r'))
     return { name: 'detail', id: a, reversed: b === 'r' }
   return { name: 'home' }

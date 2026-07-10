@@ -2,26 +2,32 @@ import { useState } from 'react'
 import { REGISTRY } from '../content/registry'
 import { getCard } from '../content'
 import { dailyDraw, todayStr } from '../lib/seed'
-import { loadName, saveName } from '../lib/storage'
+import { loadName, saveName, loadNames, rememberName, recordDaily, streakOf } from '../lib/storage'
 import { useApp } from '../state'
 import { CardFace, CardBack } from './CardFace'
 import { CopyForAI } from './CopyForAI'
+import { ShareCardButton } from './ShareCardButton'
 
 // 每日一牌：同名字＋同一天結果固定（日期+暱稱 seed），儀式感在「親手翻開」。
-// 暱稱只存本機 localStorage，不進 URL。
+// 暱稱與抽牌紀錄都只存本機 localStorage，不進 URL。
 export function Daily({ date }: { date?: string }) {
   const go = useApp((s) => s.go)
   const day = date ?? todayStr()
   const [name, setName] = useState(loadName())
   const [flipped, setFlipped] = useState(false)
+  const [streak, setStreak] = useState(0)
 
   const drawn = dailyDraw(day, name)
   const entry = REGISTRY[drawn.index]
   const card = getCard(entry.id)
   const r = card ? (drawn.reversed ? card.reversed : card.upright) : null
+  const knownNames = loadNames()
 
   const flip = () => {
     saveName(name)
+    rememberName(name)
+    recordDaily(name, day, { index: drawn.index, reversed: drawn.reversed })
+    setStreak(streakOf(name, day))
     setFlipped(true)
   }
 
@@ -41,6 +47,20 @@ export function Daily({ date }: { date?: string }) {
               maxLength={20}
               onChange={(e) => setName(e.target.value)}
             />
+            {knownNames.length > 0 && (
+              <div className="name-chips">
+                {knownNames.map((n) => (
+                  <button
+                    type="button"
+                    key={n}
+                    className={`btn tab ${name.trim() === n ? 'active' : ''}`}
+                    onClick={() => setName(n)}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            )}
             <CardBack className="big" onClick={flip} />
             <button type="button" className="btn primary big" onClick={flip}>
               翻開今天的牌
@@ -48,7 +68,12 @@ export function Daily({ date }: { date?: string }) {
           </div>
         ) : (
           <div className="daily-front">
-            {name.trim() && <p className="daily-owner">🌙 {name.trim()} 的今日一牌</p>}
+            {name.trim() && (
+              <p className="daily-owner">
+                🌙 {name.trim()} 的今日一牌
+                {streak > 1 && <span className="streak-badge">🔥 連續 {streak} 天</span>}
+              </p>
+            )}
             <div className="daily-card-img flip-in">
               <CardFace index={drawn.index} reversed={drawn.reversed} />
             </div>
@@ -62,9 +87,19 @@ export function Daily({ date }: { date?: string }) {
                 <p className="core">{r.daily}</p>
                 <p className="advice">💡 {r.advice}</p>
                 <div className="reading-actions">
+                  <ShareCardButton
+                    title={name.trim() ? `${name.trim()} 的今日一牌` : '今日一牌'}
+                    subtitle={day}
+                    cards={[drawn]}
+                  />
                   <CopyForAI spread="daily" cards={[drawn]} />
                   <button type="button" className="btn" onClick={() => go({ name: 'detail', id: entry.id, reversed: drawn.reversed })}>
                     完整牌義
+                  </button>
+                </div>
+                <div className="reading-actions">
+                  <button type="button" className="btn subtle" onClick={() => go({ name: 'journal' })}>
+                    📅 每日回顧
                   </button>
                   <button type="button" className="btn subtle" onClick={() => setFlipped(false)}>
                     換個名字

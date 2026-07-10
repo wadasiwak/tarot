@@ -39,8 +39,9 @@ try {
   await page.goto(BASE_URL)
   await page.waitForSelector('.daily-card', { timeout: 5000 })
   const modeCards = await page.$$('.mode-card')
-  if (modeCards.length !== 3) fail(`首頁應有 3 張模式卡，實得 ${modeCards.length}`)
-  if (!(await page.$('.browse-link'))) fail('首頁缺牌庫入口')
+  if (modeCards.length !== 4) fail(`首頁應有 4 張模式卡，實得 ${modeCards.length}`)
+  const homeLinks = await page.$$('.browse-link')
+  if (homeLinks.length !== 3) fail(`首頁應有牌庫/小學堂/回顧三個入口，實得 ${homeLinks.length}`)
 
   // 2. 每日一牌 seed 穩定：固定日期兩次開啟結果相同；壞日期 fallback 不炸
   await page.goto(`${BASE_URL}#daily/2026-01-15`)
@@ -106,17 +107,23 @@ try {
     await page.waitForSelector('.hero', { timeout: 3000 }).catch(() => fail(`非法 hash ${bad} 沒回首頁`))
   }
 
-  // 5. 抽牌流程：問題 → 洗牌 → 點 3 張 → 翻 3 張 → 解讀，三張牌名互不重複
+  // 5. 抽牌流程：問題 → 洗牌 → 切三刀 → 弧形扇排點 3 張 → 翻 3 張 → 解讀，三張牌名互不重複
   await page.goto(`${BASE_URL}#draw/three`)
   await page.reload()
   await page.fill('.question-input', 'e2e 測試問題')
   await page.click('.draw-ask .btn.primary')
-  await page.waitForSelector('.fan', { timeout: 6000 })
-  const fanCards = await page.$$('.fan-card')
+  await page.waitForSelector('.cut-deck', { timeout: 6000 })
+  for (let i = 0; i < 3; i++) {
+    await page.click('.cut-deck')
+    await page.waitForTimeout(150)
+  }
+  await page.waitForSelector('.fan-arc', { timeout: 3000 })
+  const fanCards = await page.$$('.fan-slot .fan-card')
   if (fanCards.length !== 78) fail(`扇面應 78 張牌背，實得 ${fanCards.length}`)
-  await fanCards[5].click()
-  await fanCards[20].click()
-  await fanCards[60].click()
+  // 最上層那張（z 最高、完整可見）用真實點擊驗證可點性；被鄰牌蓋住的用 force
+  await fanCards[77].click()
+  await fanCards[20].click({ force: true })
+  await fanCards[5].click({ force: true })
   await page.waitForSelector('.reveal-cards', { timeout: 3000 })
   for (const box of await page.$$('.flip-box')) await box.click()
   await page.waitForSelector('.see-reading', { timeout: 3000 })
@@ -146,6 +153,23 @@ try {
   if (!aiPrompt.includes('e2e 測試問題')) fail('AI prompt 缺問題')
   if (!/正位|逆位/.test(aiPrompt)) fail('AI prompt 缺正逆位')
   for (const n of names) if (!aiPrompt.includes(n)) fail(`AI prompt 缺牌名 ${n}`)
+
+  // 7b. 存成圖卡：真的產出 PNG 下載（桌機 chromium 無 share sheet → 走下載）
+  if (!(await page.$('.share-image'))) fail('結果頁缺「存成圖卡」按鈕')
+  const [download] = await Promise.all([
+    page.waitForEvent('download', { timeout: 10000 }),
+    page.click('.share-image'),
+  ])
+  if (!download.suggestedFilename().endsWith('.png')) fail(`圖卡下載檔名不對：${download.suggestedFilename()}`)
+
+  // 7c. 關係牌陣：hash 直開三區段、位置名正確、對方位無 💡（僅牌義）
+  await page.goto(`${BASE_URL}#r/relation/1-2-3`)
+  await page.reload()
+  await page.waitForSelector('.reading', { timeout: 3000 })
+  const relTitles = await page.$$eval('.position-head h3', (els) => els.map((e) => e.textContent))
+  for (const t of ['我的狀態', '對方的狀態', '關係走向']) if (!relTitles.includes(t)) fail(`關係牌陣缺位置「${t}」`)
+  const relBridges = await page.$$eval('.reading-card', (els) => els.map((e) => e.querySelector('.advice') !== null))
+  if (!relBridges[0] || relBridges[1] || !relBridges[2]) fail(`關係牌陣 💡 配置應為 [有,無,有]，實得 ${JSON.stringify(relBridges)}`)
 
   // 8. 是非模式：verdict 徽章五值之一、理由非空
   await page.goto(`${BASE_URL}#r/yesno/13`)
@@ -193,6 +217,24 @@ try {
   await page.waitForSelector('.recent', { timeout: 3000 })
   const recent = await page.textContent('.recent')
   if (!recent.includes('愚者')) fail('最近紀錄應含剛剛手動輸入的愚者')
+
+  // 14. 每日回顧：翻今天的牌 → #journal 月曆有紀錄
+  await page.goto(`${BASE_URL}#daily`)
+  await page.reload()
+  await page.click('.daily-back .btn.primary')
+  await page.waitForSelector('.daily-front .card-caption', { timeout: 3000 })
+  await page.goto(`${BASE_URL}#journal`)
+  await page.reload()
+  await page.waitForSelector('.cal-grid', { timeout: 3000 })
+  const marked = await page.$$('.cal-cell.has-card')
+  if (marked.length < 1) fail('每日回顧月曆應至少有一天有紀錄')
+
+  // 15. 小學堂：hash 直開、段落齊全
+  await page.goto(`${BASE_URL}#learn`)
+  await page.reload()
+  await page.waitForSelector('.learn', { timeout: 3000 })
+  const learnSections = await page.$$('.learn-section')
+  if (learnSections.length < 6) fail(`小學堂應至少 6 段，實得 ${learnSections.length}`)
 
   if (consoleErrors.length) fail(`頁面有未捕捉錯誤：${consoleErrors.join(' | ')}`)
 

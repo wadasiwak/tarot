@@ -6,9 +6,15 @@ import type { DrawableSpread } from '../lib/share'
 import { useApp } from '../state'
 import { CardBack, CardFace } from './CardFace'
 
-type Step = 'ask' | 'shuffle' | 'pick' | 'reveal'
+type Step = 'ask' | 'shuffle' | 'cut' | 'pick' | 'reveal'
 
-// 儀式感抽牌流程：問題（選填）→ 洗牌動畫 → 牌背攤開親手點選 → 逐張翻牌 → 結果頁
+function cryptoInt(max: number): number {
+  const buf = new Uint32Array(1)
+  crypto.getRandomValues(buf)
+  return buf[0] % max
+}
+
+// 儀式感抽牌流程：問題（選填）→ 洗牌 → 切三刀 → 弧形扇排親手點選 → 逐張翻牌 → 結果頁
 export function DrawFlow({ spread }: { spread: DrawableSpread }) {
   const openReading = useApp((s) => s.openReading)
   const def = SPREADS[spread]
@@ -16,6 +22,7 @@ export function DrawFlow({ spread }: { spread: DrawableSpread }) {
 
   const [step, setStep] = useState<Step>('ask')
   const [question, setQuestion] = useState('')
+  const [cuts, setCuts] = useState(0)
   const [picked, setPicked] = useState<number[]>([]) // 被點的扇面位置（視覺用）
   const [drawn, setDrawn] = useState<DrawnCard[]>([])
   const [flipped, setFlipped] = useState<boolean[]>([])
@@ -24,16 +31,26 @@ export function DrawFlow({ spread }: { spread: DrawableSpread }) {
   useEffect(() => {
     if (step !== 'shuffle') return
     deckRef.current = shuffledDeck()
-    const t = setTimeout(() => setStep('pick'), 1800)
+    const t = setTimeout(() => setStep('cut'), 1800)
     return () => clearTimeout(t)
   }, [step])
+
+  // 切牌：每刀在隨機位置把牌堆疊上去（真的影響牌序）
+  const cut = () => {
+    const deck = deckRef.current
+    const at = 1 + cryptoInt(deck.length - 2)
+    deckRef.current = [...deck.slice(at), ...deck.slice(0, at)]
+    const n = cuts + 1
+    setCuts(n)
+    if (n >= 3) setTimeout(() => setStep('pick'), 400)
+  }
 
   const pick = (fanIndex: number) => {
     if (picked.includes(fanIndex) || picked.length >= need) return
     const nextPicked = [...picked, fanIndex]
     setPicked(nextPicked)
     if (nextPicked.length === need) {
-      // 實際牌序來自洗牌結果；點的位置只是儀式
+      // 實際牌序來自洗牌＋切牌結果；點的位置只是儀式
       const cards = drawFromDeck(deckRef.current, need)
       setDrawn(cards)
       setFlipped(cards.map(() => false))
@@ -43,6 +60,9 @@ export function DrawFlow({ spread }: { spread: DrawableSpread }) {
 
   const flip = (i: number) => setFlipped((f) => f.map((v, k) => (k === i ? true : v)))
   const allFlipped = flipped.length > 0 && flipped.every(Boolean)
+
+  // 弧形扇排角度：78 張攤在 ±45° 之間（角度再大，邊緣的牌會沉出可視範圍）
+  const fanAngle = (i: number) => -45 + (90 * i) / 77
 
   return (
     <div className="draw-flow">
@@ -77,18 +97,34 @@ export function DrawFlow({ spread }: { spread: DrawableSpread }) {
         </div>
       )}
 
+      {step === 'cut' && (
+        <div className="cut-stage">
+          <p className="pick-hint">請切牌三刀（{cuts}/3）——每點一下，就切一刀</p>
+          <button type="button" className="cut-deck" onClick={cut} aria-label="切牌">
+            {Array.from({ length: 5 }, (_, i) => (
+              <div className="cut-card" key={`${cuts}-${i}`} style={{ animationDelay: `${i * 0.04}s` }}>
+                <span className="card-back-star">✦</span>
+              </div>
+            ))}
+          </button>
+          <p className="shuffle-hint">切到你覺得「就是這裡」為止。</p>
+        </div>
+      )}
+
       {step === 'pick' && (
         <div className="pick-stage">
           <p className="pick-hint">
             憑直覺點選 {need} 張牌（還差 {need - picked.length} 張）
           </p>
-          <div className="fan">
+          <div className="fan-arc">
             {Array.from({ length: 78 }, (_, i) => (
-              <CardBack
+              <div
+                className={`fan-slot ${picked.includes(i) ? 'picked' : ''}`}
+                style={{ transform: `translateX(-50%) rotate(${fanAngle(i)}deg)`, zIndex: i }}
                 key={i}
-                className={`fan-card ${picked.includes(i) ? 'picked' : ''}`}
-                onClick={() => pick(i)}
-              />
+              >
+                <CardBack className="fan-card" onClick={() => pick(i)} />
+              </div>
             ))}
           </div>
         </div>

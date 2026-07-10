@@ -34,6 +34,9 @@ try {
     ['manual', '#manual/three'],
     ['browse', '#cards'],
     ['detail', '#card/major-13/r'],
+    ['reading-relation', '#r/relation/6-36r-45'],
+    ['learn', '#learn'],
+    ['journal', '#journal'],
   ]
   for (const [w, label] of [[1080, 'desktop'], [390, 'mobile']]) {
     const page = await browser.newPage({ viewport: { width: w, height: 1400 } })
@@ -50,6 +53,19 @@ try {
       }
       await page.screenshot({ path: `${outDir}${label}-${name}.png`, fullPage: true })
     }
+    // 抽牌流程互動截圖：切牌 → 弧形扇排
+    await page.goto(`${BASE_URL}#draw/three`)
+    await page.reload()
+    await page.click('.draw-ask .btn.primary')
+    await page.waitForSelector('.cut-deck', { timeout: 6000 })
+    await page.screenshot({ path: `${outDir}${label}-cut.png` })
+    for (let i = 0; i < 3; i++) {
+      await page.click('.cut-deck')
+      await page.waitForTimeout(200)
+    }
+    await page.waitForSelector('.fan-arc', { timeout: 3000 })
+    await page.waitForTimeout(400)
+    await page.screenshot({ path: `${outDir}${label}-fan.png` })
     await page.close()
   }
   await browser.close()

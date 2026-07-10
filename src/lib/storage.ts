@@ -36,6 +36,76 @@ export function addRecent(entry: RecentEntry): RecentEntry[] {
   return trimmed
 }
 
+// 每日一牌歷史（月曆回顧＋連續打卡用；key 為暱稱，'' 代表未填名字）
+export interface DailyRecord {
+  index: number
+  reversed: boolean
+}
+
+const DAILY_KEY = 'tarot.daily.v1'
+
+type DailyHistory = Record<string, Record<string, DailyRecord>> // name → date → record
+
+export function loadDailyHistory(): DailyHistory {
+  try {
+    const raw = localStorage.getItem(DAILY_KEY)
+    const obj = raw ? JSON.parse(raw) : {}
+    return obj && typeof obj === 'object' ? obj : {}
+  } catch {
+    return {}
+  }
+}
+
+export function recordDaily(name: string, date: string, rec: DailyRecord): void {
+  try {
+    const all = loadDailyHistory()
+    const who = name.trim()
+    all[who] = { ...all[who], [date]: rec }
+    localStorage.setItem(DAILY_KEY, JSON.stringify(all))
+  } catch {
+    // ignore
+  }
+}
+
+// 連續打卡天數：從 date 往回數連續有紀錄的天數
+export function streakOf(name: string, date: string): number {
+  const days = loadDailyHistory()[name.trim()] ?? {}
+  let n = 0
+  const d = new Date(`${date}T00:00:00`)
+  while (!Number.isNaN(d.getTime())) {
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    if (!days[key]) break
+    n++
+    d.setDate(d.getDate() - 1)
+  }
+  return n
+}
+
+// 用過的名字清單（Daily 快切 chips 用）
+const NAMES_KEY = 'tarot.names.v1'
+
+export function loadNames(): string[] {
+  try {
+    const raw = localStorage.getItem(NAMES_KEY)
+    const list = raw ? JSON.parse(raw) : []
+    return Array.isArray(list) ? list.filter((s) => typeof s === 'string') : []
+  } catch {
+    return []
+  }
+}
+
+export function rememberName(name: string): string[] {
+  const who = name.trim()
+  if (!who) return loadNames()
+  const list = [who, ...loadNames().filter((n) => n !== who)].slice(0, 8)
+  try {
+    localStorage.setItem(NAMES_KEY, JSON.stringify(list))
+  } catch {
+    // ignore
+  }
+  return list
+}
+
 // 每日一牌的暱稱（只存本機，絕不進 URL）
 const NAME_KEY = 'tarot.name.v1'
 

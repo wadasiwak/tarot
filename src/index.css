@@ -332,3 +332,128 @@ body {
 /* 每日一牌暱稱 */
 .name-input { max-width: 360px; text-align: center; }
 .daily-owner { color: var(--accent-bright); letter-spacing: 2px; font-size: 15px; margin: 0 0 10px; }
+
+/* 弧形扇排（78 張牌背沿 ±72° 攤開） */
+/* 幾何：slot 頂端放牌、pivot 在 slot 底（半徑=slot 高）。
+   中央牌頂 y = 容器高 - (slot高 - |bottom|)；邊緣牌會比中央低 R(1-cosθ)。 */
+.fan-arc { position: relative; height: 300px; margin: 8px 0 4px; overflow: hidden; }
+.fan-slot {
+  position: absolute;
+  left: 50%;
+  bottom: -340px;
+  width: 58px;
+  height: 600px;
+  transform-origin: 50% 100%;
+  transition: opacity 0.25s;
+  pointer-events: none; /* 透明長條不吃點擊，只有牌背本體可點 */
+}
+.fan-slot .fan-card { pointer-events: auto; }
+.fan-slot .fan-card {
+  position: absolute;
+  top: 0;
+  width: 58px;
+  transition: transform 0.15s, border-color 0.15s;
+  border-color: rgba(201, 168, 76, 0.4);
+  box-shadow: -4px 0 8px rgba(0, 0, 0, 0.55); /* 左緣陰影，讓密疊的牌讀得出一張一張 */
+}
+.fan-slot .fan-card:hover { transform: translateY(-14px); border-color: var(--accent); }
+.fan-slot.picked { opacity: 0.12; pointer-events: none; }
+.fan-slot.picked .fan-card { transform: translateY(-20px); }
+.fan-slot .card-back-star { font-size: 11px; }
+
+/* 切牌 */
+.cut-stage { text-align: center; padding: 16px 0; }
+.cut-deck { position: relative; height: 200px; width: 160px; margin: 0 auto; background: transparent; border: none; cursor: pointer; display: block; }
+.cut-card {
+  position: absolute;
+  inset: 0;
+  aspect-ratio: auto;
+  background:
+    repeating-linear-gradient(45deg, rgba(201, 168, 76, 0.12) 0 6px, transparent 6px 12px),
+    linear-gradient(160deg, #2b2255, #1d1836);
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: cutSnap 0.35s ease;
+}
+.cut-card:nth-child(2) { transform: translate(4px, -4px) rotate(1.5deg); }
+.cut-card:nth-child(3) { transform: translate(-4px, -8px) rotate(-1.5deg); }
+.cut-card:nth-child(4) { transform: translate(3px, -12px) rotate(1deg); }
+.cut-card:nth-child(5) { transform: translate(-2px, -16px) rotate(-0.5deg); }
+@keyframes cutSnap {
+  0% { transform: translateX(40px) rotate(6deg); opacity: 0.4; }
+  100% { opacity: 1; }
+}
+
+/* 翻牌金光 */
+.flip-box.flipped .flip-back .card-face { animation: revealGlow 1.2s ease; }
+@keyframes revealGlow {
+  0% { box-shadow: 0 0 0 rgba(232, 201, 106, 0); }
+  35% { box-shadow: 0 0 34px rgba(232, 201, 106, 0.75); }
+  100% { box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45); }
+}
+.daily-card-img .card-face { animation: revealGlow 1.2s ease; }
+
+/* 名字快切 chips ＋ 打卡 */
+.name-chips { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin: 2px 0 6px; }
+.streak-badge {
+  display: inline-block;
+  margin-left: 10px;
+  background: rgba(201, 168, 76, 0.15);
+  border: 1px solid var(--accent);
+  color: var(--accent-bright);
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+.share-image { border-color: var(--violet); color: #cfc4f2; }
+
+/* 每日回顧月曆 */
+.cal-head { display: flex; align-items: center; justify-content: space-between; margin: 10px 0; }
+.cal-title { color: var(--accent-bright); letter-spacing: 2px; font-size: 16px; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.cal-weekday { text-align: center; color: var(--text-dim); font-size: 12px; padding: 4px 0; }
+.cal-cell {
+  min-height: 62px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: var(--text);
+  font-size: 12px;
+}
+.cal-cell.empty { background: transparent; border-color: transparent; }
+.cal-cell:disabled { cursor: default; opacity: 0.55; }
+.cal-cell.has-card { border-color: var(--violet); cursor: pointer; opacity: 1; }
+.cal-cell.has-card:hover { border-color: var(--accent); }
+.cal-cell.today { outline: 2px solid var(--accent); outline-offset: -2px; }
+.cal-day { color: var(--text-dim); font-size: 11px; }
+.cal-card-name { color: var(--accent-bright); line-height: 1.3; text-align: center; }
+
+/* 小學堂 */
+.learn-section {
+  background: linear-gradient(160deg, var(--panel-2), var(--panel));
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin: 12px 0;
+}
+.learn-section h3 { margin: 0 0 8px; color: var(--accent-bright); letter-spacing: 2px; font-size: 17px; }
+.learn-section p { font-size: 14.5px; line-height: 1.9; margin: 8px 0; }
+.home-links { display: grid; gap: 10px; margin: 4px 0 20px; }
+.home-links .browse-link { margin: 0; text-align: left; }
+
+@media (max-width: 560px) {
+  .fan-arc { height: 210px; }
+  .fan-slot { width: 40px; height: 280px; bottom: -100px; }
+  .fan-slot .fan-card { width: 40px; }
+  .cal-cell { min-height: 52px; }
+  .cal-card-name { font-size: 10px; }
+}

@@ -10,7 +10,7 @@ import type { DrawnCard } from './draw'
 export type DrawableSpread = Exclude<SpreadId, 'daily'>
 
 export function isDrawableSpread(s: string): s is DrawableSpread {
-  return s === 'three' || s === 'yesno' || s === 'choice'
+  return s === 'three' || s === 'yesno' || s === 'choice' || s === 'relation'
 }
 
 export function encodeCards(cards: DrawnCard[]): string {

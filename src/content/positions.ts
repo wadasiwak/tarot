@@ -2,13 +2,14 @@
 // 位置框架是「牌陣的屬性」不是「牌的屬性」：渲染時當區段標頭說明，
 // 牌身內容（core / advice…）不重複這些話，避免 78×3 份模板位置文。
 
-export type SpreadId = 'daily' | 'three' | 'yesno' | 'choice'
+export type SpreadId = 'daily' | 'three' | 'yesno' | 'choice' | 'relation'
 
 export const SPREAD_SIZE: Record<SpreadId, number> = {
   daily: 1,
   three: 3,
   yesno: 1,
   choice: 2,
+  relation: 3,
 }
 
 export interface SpreadPosition {
@@ -42,6 +43,15 @@ export const SPREADS: Record<SpreadId, { name: string; intro: string; positions:
     positions: [
       { title: '選項 A', frame: '選擇 A 這條路的能量與可能的發展。' },
       { title: '選項 B', frame: '選擇 B 這條路的能量與可能的發展。' },
+    ],
+  },
+  relation: {
+    name: '關係牌陣',
+    intro: '看一段關係的兩端與走向——感情、家人、同事都適用。',
+    positions: [
+      { title: '我的狀態', frame: '你在這段關係裡此刻的位置：帶著什麼能量、在意著什麼。' },
+      { title: '對方的狀態', frame: '對方此刻的能量與心思——以牌面呈現的樣子，而非你希望的樣子。' },
+      { title: '關係走向', frame: '若兩人維持現在的相處方式，這段關係自然的走向；牌末附上行動建議。' },
     ],
   },
 }

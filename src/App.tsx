@@ -6,6 +6,8 @@ import { ManualEntry } from './components/ManualEntry'
 import { Reading } from './components/Reading'
 import { Browse } from './components/Browse'
 import { CardDetail } from './components/CardDetail'
+import { Journal } from './components/Journal'
+import { Learn } from './components/Learn'
 
 export default function App() {
   const view = useApp((s) => s.view)
@@ -29,6 +31,8 @@ export default function App() {
       )}
       {view.name === 'browse' && <Browse />}
       {view.name === 'detail' && <CardDetail id={view.id} reversed={view.reversed} />}
+      {view.name === 'journal' && <Journal />}
+      {view.name === 'learn' && <Learn />}
 
       <footer className="app-footer">
         <p>
