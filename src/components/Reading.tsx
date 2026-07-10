@@ -69,7 +69,11 @@ export function Reading({ spread, cards, question }: { spread: DrawableSpread; c
                       </p>
                     )}
                     <p className="core">{item.r.core}</p>
-                    {(spread !== 'three' || i === 2) && <p className="advice">💡 {item.r.advice}</p>}
+                    {spread === 'three' ? (
+                      <p className="advice">💡 {[item.r.past, item.r.present, item.r.advice][i]}</p>
+                    ) : (
+                      <p className="advice">💡 {item.r.advice}</p>
+                    )}
                     <button
                       type="button"
                       className="btn subtle"

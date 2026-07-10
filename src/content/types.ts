@@ -46,6 +46,8 @@ export interface CardReading {
   career: string // 事業工作學業 40–70 字
   money: string // 財運金錢 40–70 字
   advice: string // 一句行動建議 20–40 字。三張牌陣「未來」位置也會引用
+  past: string // 三張牌陣「過去」位白話句 30–55 字：回望口吻，說這張牌作為「成因」留下了什麼（例：「這件事始於…，那份…是現在局面的種子。」句式勿全卡雷同）
+  present: string // 三張牌陣「現在」位白話句 30–55 字：當下課題口吻，說你此刻正面對什麼、該把注意力放哪
   verdict: Verdict // 是非題傾向（枚舉白名單，見上）
   verdictReason: string // 是非傾向理由 30–60 字（「這張牌顯示…，所以偏向…」的因果）
 }
