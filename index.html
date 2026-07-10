@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <meta name="theme-color" content="#131022" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="線上塔羅抽牌與解讀：每日一牌、三張牌陣、是非二選一，支援正逆位；也可輸入實體抽到的牌立即看牌義解析。偉特塔羅 78 張全收錄。" />
+    <meta name="copyright" content="© 2026 wadasiwak. All rights reserved." />
+    <title>日常塔羅 ✦ 線上抽牌・偉特塔羅 78 張解讀</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="日常塔羅 ✦ 線上抽牌・偉特塔羅 78 張解讀" />
+    <meta
+      property="og:description"
+      content="每日一牌、三張牌陣（過去/現在/未來）、是非二選一，支援正逆位；抽了實體牌也能輸入查解析。偉特塔羅 78 張牌義全收錄，免下載免註冊。"
+    />
+    <meta property="og:url" content="https://wadasiwak.github.io/tarot/" />
+    <meta property="og:image" content="https://wadasiwak.github.io/tarot/og-image.png" />
+    <meta property="og:image:width" content="2400" />
+    <meta property="og:image:height" content="1260" />
+    <meta name="twitter:card" content="summary_large_image" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // 匿名流量統計（GoatCounter，無 cookie）。只回報 pathname——
+      // hash 含抽牌結果、query 可能含個資，一律不上報。
+      window.goatcounter = {
+        path: function () {
+          return location.pathname
+        },
+      }
+    </script>
+    <script data-goatcounter="https://wadasiwak.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+    <script src="https://wadasiwak.github.io/japan-planner/widget.js" data-site="tarot" defer></script>
+  </body>
+</html>

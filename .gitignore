@@ -1,0 +1,7 @@
+node_modules
+dist
+scratch
+scripts/shots
+*.log
+.DS_Store
+CLAUDE.md

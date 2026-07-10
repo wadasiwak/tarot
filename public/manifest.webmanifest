@@ -1,0 +1,13 @@
+{
+  "name": "日常塔羅",
+  "short_name": "日常塔羅",
+  "description": "線上塔羅抽牌與解讀：每日一牌、三張牌陣、是非二選一，支援正逆位",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#131022",
+  "theme_color": "#131022",
+  "icons": [
+    { "src": "./favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "./apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any" }
+  ]
+}
