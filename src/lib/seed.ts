@@ -25,9 +25,11 @@ export function todayStr(): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
-// 每日一牌：date 格式 YYYY-MM-DD；同日期永遠回同一張（含正逆位）
-export function dailyDraw(date: string): DrawnCard {
-  const rng = mulberry32(hashStr(`tarot:${date}`))
+// 每日一牌：date 格式 YYYY-MM-DD；同名字＋同日期永遠回同一張（含正逆位）。
+// 不填名字＝全站共用的當日牌；填了名字就是專屬於這個人的今日運勢。
+export function dailyDraw(date: string, name = ''): DrawnCard {
+  const who = name.trim()
+  const rng = mulberry32(hashStr(who ? `tarot:${who}:${date}` : `tarot:${date}`))
   const index = Math.floor(rng() * CARD_COUNT)
   const reversed = rng() < REVERSED_P
   return { index, reversed }

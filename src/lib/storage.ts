@@ -36,6 +36,26 @@ export function addRecent(entry: RecentEntry): RecentEntry[] {
   return trimmed
 }
 
+// 每日一牌的暱稱（只存本機，絕不進 URL）
+const NAME_KEY = 'tarot.name.v1'
+
+export function loadName(): string {
+  try {
+    return localStorage.getItem(NAME_KEY) ?? ''
+  } catch {
+    return ''
+  }
+}
+
+export function saveName(name: string): void {
+  try {
+    if (name.trim()) localStorage.setItem(NAME_KEY, name.trim())
+    else localStorage.removeItem(NAME_KEY)
+  } catch {
+    // ignore
+  }
+}
+
 export function clearRecent(): void {
   try {
     localStorage.removeItem(KEY)

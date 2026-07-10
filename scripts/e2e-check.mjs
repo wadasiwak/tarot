@@ -58,6 +58,24 @@ try {
   await page.reload()
   await page.waitForSelector('.daily-view', { timeout: 3000 })
 
+  // 2b. 暱稱 seed：同名同日結果固定、名字 reload 保留（localStorage）
+  await page.goto(`${BASE_URL}#daily/2026-01-15`)
+  await page.reload()
+  await page.fill('.name-input', '小美')
+  await page.click('.daily-back .btn.primary')
+  await page.waitForSelector('.daily-front .card-caption', { timeout: 3000 })
+  const named1 = await page.textContent('.daily-front .card-caption')
+  const owner = await page.textContent('.daily-owner')
+  if (!owner.includes('小美')) fail('翻牌後應顯示「小美 的今日一牌」')
+  await page.reload()
+  const savedName = await page.inputValue('.name-input')
+  if (savedName !== '小美') fail(`暱稱 reload 應保留，實得「${savedName}」`)
+  await page.click('.daily-back .btn.primary')
+  await page.waitForSelector('.daily-front .card-caption', { timeout: 3000 })
+  const named2 = await page.textContent('.daily-front .card-caption')
+  if (named1 !== named2) fail(`同名同日結果不穩定：「${named1}」vs「${named2}」`)
+  await page.evaluate(() => localStorage.removeItem('tarot.name.v1'))
+
   // 3. hash 直開還原：單牌詳情（正/逆位）、reading 三區段
   await page.goto(`${BASE_URL}#card/wands-03`)
   await page.reload()

@@ -328,3 +328,7 @@ body {
   .orientation-options { gap: 12px; }
   .orientation-btn { width: 42vw; max-width: 150px; }
 }
+
+/* 每日一牌暱稱 */
+.name-input { max-width: 360px; text-align: center; }
+.daily-owner { color: var(--accent-bright); letter-spacing: 2px; font-size: 15px; margin: 0 0 10px; }
