@@ -37,6 +37,21 @@ export const VERDICT_LABELS: Record<Verdict, string> = {
   no: '否',
 }
 
+export const VERDICT_LABELS_EN: Record<Verdict, string> = {
+  yes: 'Yes',
+  leanYes: 'Leaning yes',
+  neutral: 'Unclear',
+  leanNo: 'Leaning no',
+  no: 'No',
+}
+
+export const SUIT_NAMES_EN: Record<Suit, string> = {
+  wands: 'Wands',
+  cups: 'Cups',
+  swords: 'Swords',
+  pentacles: 'Pentacles',
+}
+
 // 單一方向（正位或逆位）的完整解讀
 export interface CardReading {
   keywords: string[] // 3–5 個關鍵詞，各 2–6 字（例：新的開始、冒險、天真）

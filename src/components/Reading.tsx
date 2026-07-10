@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { REGISTRY } from '../content/registry'
 import { getCard } from '../content'
-import { SPREADS } from '../content/positions'
-import { VERDICT_LABELS } from '../content/types'
+import { getSpreads } from '../content/positions'
+import { VERDICT_LABELS, VERDICT_LABELS_EN } from '../content/types'
 import type { DrawnCard } from '../lib/draw'
 import { compareChoice } from '../lib/verdict'
 import { shareUrl, type DrawableSpread } from '../lib/share'
 import { useApp } from '../state'
+import { STRINGS } from '../lib/i18n'
 import { CardFace } from './CardFace'
 import { CopyForAI } from './CopyForAI'
 import { ShareCardButton } from './ShareCardButton'
@@ -14,7 +15,10 @@ import { ShareCardButton } from './ShareCardButton'
 // 結果頁：線上抽牌 / 手動輸入 / hash 直開三種來源共用
 export function Reading({ spread, cards, question }: { spread: DrawableSpread; cards: DrawnCard[]; question?: string }) {
   const go = useApp((s) => s.go)
-  const def = SPREADS[spread]
+  const lang = useApp((s) => s.lang)
+  const T = STRINGS[lang]
+  const def = getSpreads(lang)[spread]
+  const labels = lang === 'en' ? VERDICT_LABELS_EN : VERDICT_LABELS
   const [copied, setCopied] = useState(false)
 
   const share = async () => {
@@ -28,24 +32,37 @@ export function Reading({ spread, cards, question }: { spread: DrawableSpread; c
   }
 
   const readings = cards.map((c) => {
-    const card = getCard(REGISTRY[c.index].id)
+    const card = getCard(REGISTRY[c.index].id, lang)
     return card ? { card, r: c.reversed ? card.reversed : card.upright } : null
   })
+
+  const choiceResult =
+    spread === 'choice' && readings[0] && readings[1]
+      ? compareChoice(readings[0].r.verdict, readings[1].r.verdict)
+      : null
 
   return (
     <div className="reading">
       <h2 className="reading-title">{def.name}</h2>
       <p className="reading-intro">{def.intro}</p>
-      {question && <p className="asked-question">所問之事：{question}</p>}
+      {question && (
+        <p className="asked-question">
+          {T.askedPrefix}
+          {question}
+        </p>
+      )}
 
-      {spread === 'choice' && readings[0] && readings[1] && (
-        <p className="choice-banner">{compareChoice(readings[0].r.verdict, readings[1].r.verdict)}</p>
+      {choiceResult && (
+        <p className="choice-banner">
+          {choiceResult === 'A' ? T.choiceA_wins : choiceResult === 'B' ? T.choiceB_wins : T.choiceTie}
+        </p>
       )}
 
       <div className={`reading-cards spread-${spread}`}>
         {cards.map((c, i) => {
           const pos = def.positions[i]
           const item = readings[i]
+          const entry = REGISTRY[c.index]
           return (
             <section className="reading-card" key={c.index}>
               <header className="position-head">
@@ -56,8 +73,8 @@ export function Reading({ spread, cards, question }: { spread: DrawableSpread; c
                 <div className="reading-card-img">
                   <CardFace index={c.index} reversed={c.reversed} />
                   <p className="card-caption">
-                    {REGISTRY[c.index].name}
-                    <span className={`ori-badge ${c.reversed ? 'rev' : 'up'}`}>{c.reversed ? '逆位' : '正位'}</span>
+                    {lang === 'en' ? entry.nameEn : entry.name}
+                    <span className={`ori-badge ${c.reversed ? 'rev' : 'up'}`}>{c.reversed ? T.reversed : T.upright}</span>
                   </p>
                 </div>
                 {item ? (
@@ -65,7 +82,8 @@ export function Reading({ spread, cards, question }: { spread: DrawableSpread; c
                     <p className="keywords">{item.r.keywords.map((k) => `#${k}`).join(' ')}</p>
                     {(spread === 'yesno' || spread === 'choice') && (
                       <p className={`verdict-badge v-${item.r.verdict}`}>
-                        傾向：{VERDICT_LABELS[item.r.verdict]}
+                        {T.verdictPrefix}
+                        {labels[item.r.verdict]}
                         <span className="verdict-reason">{item.r.verdictReason}</span>
                       </p>
                     )}
@@ -85,11 +103,11 @@ export function Reading({ spread, cards, question }: { spread: DrawableSpread; c
                       className="btn subtle"
                       onClick={() => go({ name: 'detail', id: item.card.id, reversed: c.reversed })}
                     >
-                      看這張牌的完整牌義 →
+                      {T.fullMeaningArrow}
                     </button>
                   </div>
                 ) : (
-                  <p className="pending-note">這張牌的解讀內容整備中。</p>
+                  <p className="pending-note">{T.pendingNote}</p>
                 )}
               </div>
             </section>
@@ -99,7 +117,7 @@ export function Reading({ spread, cards, question }: { spread: DrawableSpread; c
 
       <div className="reading-actions">
         <button type="button" className="btn" onClick={share}>
-          {copied ? '✓ 連結已複製' : '分享這次抽牌'}
+          {copied ? T.linkCopied : T.shareReading}
         </button>
         <ShareCardButton
           title={def.name}
@@ -109,10 +127,10 @@ export function Reading({ spread, cards, question }: { spread: DrawableSpread; c
         />
         <CopyForAI spread={spread} cards={cards} question={question} />
         <button type="button" className="btn" onClick={() => go({ name: 'draw', spread })}>
-          再抽一次
+          {T.drawAgain}
         </button>
       </div>
-      <p className="disclaimer">塔羅解讀僅供參考與自我對話，重大決定請以自己的判斷為主。</p>
+      <p className="disclaimer">{T.disclaimerShort}</p>
     </div>
   )
 }

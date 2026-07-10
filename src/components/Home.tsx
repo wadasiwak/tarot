@@ -1,45 +1,64 @@
 import { REGISTRY } from '../content/registry'
-import { SPREADS } from '../content/positions'
+import { getSpreads } from '../content/positions'
 import { useApp } from '../state'
+import { STRINGS } from '../lib/i18n'
 import type { DrawableSpread } from '../lib/share'
 
-const MODES: { spread: DrawableSpread; emoji: string; desc: string }[] = [
-  { spread: 'three', emoji: '🃏', desc: '過去・現在・未來，看一件事的來龍去脈' },
-  { spread: 'relation', emoji: '💞', desc: '我・對方・走向，看一段關係的兩端' },
-  { spread: 'yesno', emoji: '⚖️', desc: '心裡想好一個是非題，抽一張看傾向' },
-  { spread: 'choice', emoji: '🔀', desc: '兩個選項各抽一張，比較兩邊能量' },
+const MODES: { spread: DrawableSpread; emoji: string }[] = [
+  { spread: 'three', emoji: '🃏' },
+  { spread: 'relation', emoji: '💞' },
+  { spread: 'yesno', emoji: '⚖️' },
+  { spread: 'choice', emoji: '🔀' },
 ]
+
+const MODE_DESC = {
+  zh: {
+    three: '過去・現在・未來，看一件事的來龍去脈',
+    relation: '我・對方・走向，看一段關係的兩端',
+    yesno: '心裡想好一個是非題，抽一張看傾向',
+    choice: '兩個選項各抽一張，比較兩邊能量',
+  },
+  en: {
+    three: 'Past, present, future — the arc of one thing',
+    relation: 'You, them, and where it heads',
+    yesno: 'Hold a yes-or-no question, draw one card',
+    choice: 'One card for each option — compare the energy',
+  },
+} as const
 
 export function Home() {
   const go = useApp((s) => s.go)
   const recent = useApp((s) => s.recent)
   const clearHistory = useApp((s) => s.clearHistory)
+  const lang = useApp((s) => s.lang)
+  const T = STRINGS[lang]
+  const spreads = getSpreads(lang)
 
   return (
     <div className="home">
       <div className="hero">
-        <p className="hero-title">想問什麼，就讓牌說話</p>
-        <p className="hero-sub">線上抽牌，或輸入你實體抽到的牌——78 張偉特塔羅全收錄，含正逆位解讀。</p>
+        <p className="hero-title">{T.heroTitle}</p>
+        <p className="hero-sub">{T.heroSub}</p>
       </div>
 
       <button type="button" className="daily-card" onClick={() => go({ name: 'daily' })}>
-        <span className="daily-label">🌙 每日一牌</span>
-        <span className="daily-line">翻開今天專屬於你的指引</span>
+        <span className="daily-label">{T.dailyLabel}</span>
+        <span className="daily-line">{T.dailyLine}</span>
       </button>
 
       <div className="mode-cards">
         {MODES.map((m) => (
           <div className="mode-card" key={m.spread}>
             <h3>
-              {m.emoji} {SPREADS[m.spread].name}
+              {m.emoji} {spreads[m.spread].name}
             </h3>
-            <p className="mode-desc">{m.desc}</p>
+            <p className="mode-desc">{MODE_DESC[lang][m.spread]}</p>
             <div className="mode-actions">
               <button type="button" className="btn primary" onClick={() => go({ name: 'draw', spread: m.spread })}>
-                線上抽牌
+                {T.drawOnline}
               </button>
               <button type="button" className="btn" onClick={() => go({ name: 'manual', spread: m.spread })}>
-                輸入實體牌
+                {T.enterPhysical}
               </button>
             </div>
           </div>
@@ -48,22 +67,22 @@ export function Home() {
 
       <div className="home-links">
         <button type="button" className="browse-link" onClick={() => go({ name: 'browse' })}>
-          📖 塔羅牌庫——78 張牌義隨時查
+          {T.browseLink}
         </button>
         <button type="button" className="browse-link" onClick={() => go({ name: 'learn' })}>
-          🎓 塔羅小學堂——十分鐘看懂花色與正逆位
+          {T.learnLink}
         </button>
         <button type="button" className="browse-link" onClick={() => go({ name: 'journal' })}>
-          📅 每日回顧——月曆看你翻過的牌
+          {T.journalLink}
         </button>
       </div>
 
       {recent.length > 0 && (
         <div className="recent">
           <div className="recent-head">
-            <h3>最近的抽牌</h3>
+            <h3>{T.recentTitle}</h3>
             <button type="button" className="btn subtle" onClick={clearHistory}>
-              清除
+              {T.clear}
             </button>
           </div>
           {recent.map((e, i) => (
@@ -78,9 +97,11 @@ export function Home() {
               }
             >
               <span className="recent-date">{e.at}</span>
-              <span className="recent-spread">{e.spread === 'daily' ? '每日一牌' : SPREADS[e.spread].name}</span>
+              <span className="recent-spread">{spreads[e.spread].name}</span>
               <span className="recent-cards">
-                {e.cards.map((c) => `${REGISTRY[c.index].name}${c.reversed ? '(逆)' : ''}`).join('、')}
+                {e.cards
+                  .map((c) => `${lang === 'en' ? REGISTRY[c.index].nameEn : REGISTRY[c.index].name}${c.reversed ? T.revShort : ''}`)
+                  .join(lang === 'en' ? ', ' : '、')}
               </span>
               {e.question && <span className="recent-q">「{e.question}」</span>}
             </button>

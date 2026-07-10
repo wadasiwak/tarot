@@ -55,3 +55,46 @@ export const SPREADS: Record<SpreadId, { name: string; intro: string; positions:
     ],
   },
 }
+
+export const SPREADS_EN: Record<SpreadId, { name: string; intro: string; positions: SpreadPosition[] }> = {
+  daily: {
+    name: 'Card of the Day',
+    intro: "Today's energy and reminder — the result stays the same all day.",
+    positions: [{ title: "Today's Guidance", frame: 'This card describes the energy around you today, and one thing worth keeping in mind.' }],
+  },
+  three: {
+    name: 'Three-Card Spread',
+    intro: 'Past, present and future — the arc of one situation.',
+    positions: [
+      { title: 'Past', frame: 'Where it came from: what has already happened that shaped the present.' },
+      { title: 'Present', frame: 'The task at hand: what you are truly facing right now.' },
+      { title: 'Future', frame: 'Where things naturally head if nothing changes; the card ends with its advice for you.' },
+    ],
+  },
+  yesno: {
+    name: 'Yes or No',
+    intro: 'Hold a yes-or-no question in mind and draw one card for the overall lean.',
+    positions: [{ title: 'The Lean', frame: "The card's overall energy toward your question, with the reasoning." }],
+  },
+  choice: {
+    name: 'Two Choices',
+    intro: 'Torn between two options? Draw one card for each and compare their energy.',
+    positions: [
+      { title: 'Option A', frame: 'The energy and likely unfolding of path A.' },
+      { title: 'Option B', frame: 'The energy and likely unfolding of path B.' },
+    ],
+  },
+  relation: {
+    name: 'Relationship Spread',
+    intro: 'Both sides of a relationship and where it is heading — love, family or work.',
+    positions: [
+      { title: 'Where I Stand', frame: 'Your place in this relationship right now: the energy you carry, what you care about.' },
+      { title: 'Where They Stand', frame: 'Their energy and state of mind — as the card shows it, not as you wish it to be.' },
+      { title: 'Where It Heads', frame: 'Where the relationship naturally goes if things stay as they are; the card ends with its advice.' },
+    ],
+  },
+}
+
+export function getSpreads(lang: 'zh' | 'en') {
+  return lang === 'en' ? SPREADS_EN : SPREADS
+}

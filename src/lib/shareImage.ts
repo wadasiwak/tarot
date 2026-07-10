@@ -3,12 +3,14 @@
 import { REGISTRY } from '../content/registry'
 import { getCard } from '../content'
 import type { DrawnCard } from './draw'
+import { STRINGS, type Lang } from './i18n'
 
 interface ShareImageOpts {
   title: string // 牌陣名或「OO 的今日一牌」
   subtitle: string // 日期或位置摘要
   cards: DrawnCard[] // 1–3 張
   positionTitles?: string[] // 各張的位置名（多張時標示）
+  lang?: Lang
 }
 
 const W = 900
@@ -34,6 +36,7 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
 }
 
 export async function makeShareImage(opts: ShareImageOpts): Promise<Blob> {
+  const lang: Lang = opts.lang ?? 'zh'
   const canvas = document.createElement('canvas')
   canvas.width = W
   canvas.height = H
@@ -99,15 +102,16 @@ export async function makeShareImage(opts: ShareImageOpts): Promise<Blob> {
     }
     // 牌名＋正逆位
     ctx.fillStyle = '#e6ddf2'
-    ctx.font = `600 30px ${font}`
-    const ori = c.reversed ? '（逆位）' : '（正位）'
-    ctx.fillText(`${entry.name}${ori}`, x + cardW / 2, y0 + cardH + (opts.positionTitles?.[i] ? 88 : 52))
+    ctx.font = `600 ${lang === 'en' ? 26 : 30}px ${font}`
+    const cardName = lang === 'en' ? entry.nameEn : entry.name
+    const ori = lang === 'en' ? (c.reversed ? ' (Reversed)' : ' (Upright)') : c.reversed ? '（逆位）' : '（正位）'
+    ctx.fillText(`${cardName}${ori}`, x + cardW / 2, y0 + cardH + (opts.positionTitles?.[i] ? 88 : 52))
   }
 
   // 關鍵字（單張時顯示）
   if (n === 1) {
     const c = opts.cards[0]
-    const card = getCard(REGISTRY[c.index].id)
+    const card = getCard(REGISTRY[c.index].id, lang)
     if (card) {
       const r = c.reversed ? card.reversed : card.upright
       ctx.fillStyle = '#8f7bd8'
@@ -119,7 +123,7 @@ export async function makeShareImage(opts: ShareImageOpts): Promise<Blob> {
   // 底部站名
   ctx.fillStyle = '#a396c4'
   ctx.font = `24px ${font}`
-  ctx.fillText('日常塔羅 ✦ wadasiwak.github.io/tarot', W / 2, H - 60)
+  ctx.fillText(STRINGS[lang].shareImgSite, W / 2, H - 60)
 
   return new Promise((resolve, reject) =>
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/png'),

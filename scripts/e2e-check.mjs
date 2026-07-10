@@ -229,6 +229,31 @@ try {
   const marked = await page.$$('.cal-cell.has-card')
   if (marked.length < 1) fail('每日回顧月曆應至少有一天有紀錄')
 
+  // 14b. 語言切換：EN 首頁/牌義/詳情都是英文、reload 記住偏好、切回中文
+  await page.goto(BASE_URL)
+  await page.reload()
+  await page.click('.lang-toggle')
+  const heroEn = await page.textContent('.hero-title')
+  if (!heroEn.includes('let the cards speak')) fail(`EN 首頁標題不對：${heroEn}`)
+  await page.reload()
+  const heroEn2 = await page.textContent('.hero-title')
+  if (!heroEn2.includes('let the cards speak')) fail('EN 偏好 reload 後未保留')
+  await page.goto(`${BASE_URL}#card/major-00`)
+  await page.reload()
+  const detailEn = await page.textContent('.detail-title h2')
+  if (!detailEn.includes('The Fool')) fail(`EN 詳情頁牌名不對：${detailEn}`)
+  const coreEn = await page.textContent('.card-detail .core')
+  if (!/[a-zA-Z]{20}/.test(coreEn.replaceAll(' ', ''))) fail('EN 詳情頁 core 應為英文內容')
+  const oriEn = await page.textContent('.ori-toggle .btn.active')
+  if (!oriEn.includes('Upright')) fail('EN 正逆位切換鈕應為英文')
+  await page.goto(`${BASE_URL}#r/three/34r-7-61`)
+  await page.reload()
+  const posEn = await page.$$eval('.position-head h3', (els) => els.map((e) => e.textContent))
+  for (const t of ['Past', 'Present', 'Future']) if (!posEn.includes(t)) fail(`EN 三張牌陣缺位置「${t}」`)
+  await page.click('.lang-toggle') // 切回中文
+  const backZh = await page.$$eval('.position-head h3', (els) => els.map((e) => e.textContent))
+  if (!backZh.includes('過去')) fail('切回中文失敗')
+
   // 15. 小學堂：hash 直開、段落齊全
   await page.goto(`${BASE_URL}#learn`)
   await page.reload()

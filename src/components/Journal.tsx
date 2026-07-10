@@ -3,8 +3,7 @@ import { REGISTRY } from '../content/registry'
 import { loadDailyHistory, loadName, loadNames, streakOf } from '../lib/storage'
 import { todayStr } from '../lib/seed'
 import { useApp } from '../state'
-
-const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
+import { STRINGS } from '../lib/i18n'
 
 function monthKey(y: number, m: number) {
   return `${y}-${String(m + 1).padStart(2, '0')}`
@@ -13,6 +12,8 @@ function monthKey(y: number, m: number) {
 // 每日一牌回顧：月曆看過去每天翻到什麼＋連續打卡天數（資料都在本機）
 export function Journal() {
   const go = useApp((s) => s.go)
+  const lang = useApp((s) => s.lang)
+  const T = STRINGS[lang]
   const [who, setWho] = useState(loadName())
   const today = todayStr()
   const [cursor, setCursor] = useState(() => {
@@ -31,12 +32,10 @@ export function Journal() {
 
   return (
     <div className="journal">
-      <h2 className="reading-title">每日一牌回顧</h2>
+      <h2 className="reading-title">{T.journalTitle}</h2>
       <p className="reading-intro">
-        看看這陣子每天翻到什麼牌。紀錄只存在這台裝置上。
-        {streak > 0 && (
-          <span className="streak-badge">🔥 已連續 {streak} 天</span>
-        )}
+        {T.journalIntro}
+        {streak > 0 && <span className="streak-badge">{T.journalStreak(streak)}</span>}
       </p>
 
       {names.length > 1 && (
@@ -48,7 +47,7 @@ export function Journal() {
               className={`btn tab ${who.trim() === n ? 'active' : ''}`}
               onClick={() => setWho(n)}
             >
-              {n || '（未填名字）'}
+              {n || T.noName}
             </button>
           ))}
         </div>
@@ -56,18 +55,16 @@ export function Journal() {
 
       <div className="cal-head">
         <button type="button" className="btn subtle" onClick={() => setCursor(({ y, m }) => (m === 0 ? { y: y - 1, m: 11 } : { y, m: m - 1 }))}>
-          ← 上個月
+          {T.prevMonth}
         </button>
-        <span className="cal-title">
-          {cursor.y} 年 {cursor.m + 1} 月
-        </span>
+        <span className="cal-title">{T.monthTitle(cursor.y, cursor.m + 1)}</span>
         <button type="button" className="btn subtle" onClick={() => setCursor(({ y, m }) => (m === 11 ? { y: y + 1, m: 0 } : { y, m: m + 1 }))}>
-          下個月 →
+          {T.nextMonth}
         </button>
       </div>
 
       <div className="cal-grid">
-        {WEEKDAYS.map((w) => (
+        {T.weekdays.map((w) => (
           <div className="cal-weekday" key={w}>
             {w}
           </div>
@@ -90,8 +87,8 @@ export function Journal() {
               <span className="cal-day">{i + 1}</span>
               {rec && (
                 <span className="cal-card-name">
-                  {REGISTRY[rec.index].name}
-                  {rec.reversed ? '·逆' : ''}
+                  {lang === 'en' ? REGISTRY[rec.index].nameEn : REGISTRY[rec.index].name}
+                  {rec.reversed ? (lang === 'en' ? ' ↓' : '·逆') : ''}
                 </span>
               )}
             </button>
@@ -101,7 +98,7 @@ export function Journal() {
 
       <div className="reading-actions">
         <button type="button" className="btn primary" onClick={() => go({ name: 'daily' })}>
-          去翻今天的牌
+          {T.goDrawToday}
         </button>
       </div>
     </div>

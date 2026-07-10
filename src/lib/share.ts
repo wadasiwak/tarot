@@ -3,9 +3,10 @@
 // ⚠️ 問題文字絕不進 URL（可能含個資），只進剪貼簿的 AI prompt。
 import { CARD_COUNT, REGISTRY } from '../content/registry'
 import { getCard } from '../content'
-import { SPREADS, SPREAD_SIZE, type SpreadId } from '../content/positions'
-import { VERDICT_LABELS } from '../content/types'
+import { getSpreads, SPREAD_SIZE, type SpreadId } from '../content/positions'
+import { VERDICT_LABELS, VERDICT_LABELS_EN } from '../content/types'
 import type { DrawnCard } from './draw'
+import type { Lang } from './i18n'
 
 export type DrawableSpread = Exclude<SpreadId, 'daily'>
 
@@ -42,29 +43,48 @@ export function shareUrl(spread: DrawableSpread, cards: DrawnCard[]): string {
   return `${location.origin}${location.pathname}${readingHash(spread, cards)}`
 }
 
-function cardLine(c: DrawnCard, label: string): string {
-  const card = getCard(REGISTRY[c.index].id)
-  const ori = c.reversed ? '逆位' : '正位'
-  const kw = card ? (c.reversed ? card.reversed : card.upright).keywords.join('、') : ''
-  return `${label}：${REGISTRY[c.index].name}（${ori}）— 關鍵字：${kw}`
+function cardLine(c: DrawnCard, label: string, lang: Lang): string {
+  const entry = REGISTRY[c.index]
+  const card = getCard(entry.id, lang)
+  const kw = card ? (c.reversed ? card.reversed : card.upright).keywords : []
+  if (lang === 'en') {
+    return `${label}: ${entry.nameEn} (${c.reversed ? 'reversed' : 'upright'}) — keywords: ${kw.join(', ')}`
+  }
+  return `${label}：${entry.name}（${c.reversed ? '逆位' : '正位'}）— 關鍵字：${kw.join('、')}`
 }
 
 // 一鍵複製給任意 LLM 的深度解讀 prompt（零 API 成本的 AI 外包）
-export function buildAIPrompt(spread: SpreadId, cards: DrawnCard[], question?: string): string {
-  const def = SPREADS[spread]
-  const lines = cards.map((c, i) => cardLine(c, def.positions[i]?.title ?? `第 ${i + 1} 張`))
+export function buildAIPrompt(spread: SpreadId, cards: DrawnCard[], question?: string, lang: Lang = 'zh'): string {
+  const def = getSpreads(lang)[spread]
+  const en = lang === 'en'
+  const lines = cards.map((c, i) => cardLine(c, def.positions[i]?.title ?? (en ? `Card ${i + 1}` : `第 ${i + 1} 張`), lang))
+  const labels = en ? VERDICT_LABELS_EN : VERDICT_LABELS
   const verdictNote =
     spread === 'yesno' || spread === 'choice'
       ? cards
           .map((c, i) => {
-            const card = getCard(REGISTRY[c.index].id)
+            const card = getCard(REGISTRY[c.index].id, lang)
             if (!card) return ''
             const r = c.reversed ? card.reversed : card.upright
-            return `${def.positions[i]?.title ?? ''}牌面傾向：${VERDICT_LABELS[r.verdict]}（${r.verdictReason}）`
+            return en
+              ? `${def.positions[i]?.title ?? ''} lean: ${labels[r.verdict]} (${r.verdictReason})`
+              : `${def.positions[i]?.title ?? ''}牌面傾向：${labels[r.verdict]}（${r.verdictReason}）`
           })
           .filter(Boolean)
           .join('\n') + '\n'
       : ''
+  if (en) {
+    return [
+      'Please act as a warm, honest tarot reader and give me an in-depth reading of this draw, in English.',
+      question ? `My question: ${question}` : "(I didn't enter a specific question — please give a general guidance reading.)",
+      `Spread: ${def.name} (${def.intro})`,
+      ...lines,
+      verdictNote,
+      'Please weave all the cards together into one complete reading, ending with concrete, doable advice. If there are challenges, name them honestly — and show me how to face them.',
+    ]
+      .filter(Boolean)
+      .join('\n')
+  }
   return [
     '請扮演一位溫暖而誠實的塔羅牌解讀者，用繁體中文（台灣用語）為我深入解讀這次抽牌。',
     question ? `我的問題：${question}` : '（我沒有輸入具體問題，請做整體指引解讀。）',

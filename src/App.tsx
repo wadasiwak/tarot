@@ -1,4 +1,5 @@
 import { useApp } from './state'
+import { STRINGS } from './lib/i18n'
 import { Home } from './components/Home'
 import { Daily } from './components/Daily'
 import { DrawFlow } from './components/DrawFlow'
@@ -12,14 +13,25 @@ import { Learn } from './components/Learn'
 export default function App() {
   const view = useApp((s) => s.view)
   const go = useApp((s) => s.go)
+  const lang = useApp((s) => s.lang)
+  const setLang = useApp((s) => s.setLang)
+  const T = STRINGS[lang]
 
   return (
     <div className="app">
       <header className="app-header">
         <h1 className="clickable" onClick={() => go({ name: 'home' })}>
-          日常塔羅
+          {T.siteTitle}
         </h1>
-        <span className="header-sub">偉特塔羅・78 張・正逆位</span>
+        <span className="header-sub">{T.headerSub}</span>
+        <button
+          type="button"
+          className="btn tab lang-toggle"
+          onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
+          aria-label="switch language"
+        >
+          {lang === 'zh' ? 'EN' : '中'}
+        </button>
       </header>
 
       {view.name === 'home' && <Home />}
@@ -35,10 +47,7 @@ export default function App() {
       {view.name === 'learn' && <Learn />}
 
       <footer className="app-footer">
-        <p>
-          牌義解讀為本站原創整理，僅供參考與自我對話，重大決定請以自己的判斷為主；
-          牌面圖像為 1909 年偉特塔羅公版掃描（Pamela Colman Smith 繪）。
-        </p>
+        <p>{T.footerLine1}</p>
         <p>© 2026 wadasiwak. All rights reserved.</p>
       </footer>
     </div>

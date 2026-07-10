@@ -3,6 +3,7 @@ import type { DrawnCard } from './lib/draw'
 import { decodeCards, encodeCards, isDrawableSpread, type DrawableSpread } from './lib/share'
 import { REGISTRY } from './content/registry'
 import { loadRecent, addRecent, clearRecent, type RecentEntry } from './lib/storage'
+import { loadLang, saveLang, type Lang } from './lib/i18n'
 
 export type View =
   | { name: 'home' }
@@ -69,14 +70,17 @@ export function hashToView(hash: string): View {
 interface AppState {
   view: View
   recent: RecentEntry[]
+  lang: Lang
   go: (view: View) => void
   openReading: (spread: DrawableSpread, cards: DrawnCard[], question?: string) => void
   clearHistory: () => void
+  setLang: (lang: Lang) => void
 }
 
 export const useApp = create<AppState>((set) => ({
   view: hashToView(location.hash),
   recent: loadRecent(),
+  lang: loadLang(),
   go: (view) => {
     history.replaceState(null, '', viewToHash(view) || location.pathname)
     set({ view })
@@ -89,5 +93,10 @@ export const useApp = create<AppState>((set) => ({
   clearHistory: () => {
     clearRecent()
     set({ recent: [] })
+  },
+  setLang: (lang) => {
+    saveLang(lang)
+    document.documentElement.lang = lang === 'en' ? 'en' : 'zh-Hant-TW'
+    set({ lang })
   },
 }))

@@ -1,29 +1,27 @@
 import { useMemo, useState } from 'react'
 import { REGISTRY, indexOfCard, type RegistryEntry } from '../content/registry'
-import { SPREADS, SPREAD_SIZE } from '../content/positions'
+import { getSpreads, SPREAD_SIZE } from '../content/positions'
+import { SUIT_NAMES, SUIT_NAMES_EN } from '../content/types'
 import type { DrawnCard } from '../lib/draw'
 import type { DrawableSpread } from '../lib/share'
 import { searchCards } from '../lib/search'
 import { useApp } from '../state'
+import { STRINGS } from '../lib/i18n'
 import { CardFace } from './CardFace'
 
-const TABS = [
-  { key: 'major', label: '大牌' },
-  { key: 'wands', label: '權杖' },
-  { key: 'cups', label: '聖杯' },
-  { key: 'swords', label: '寶劍' },
-  { key: 'pentacles', label: '錢幣' },
-] as const
+const TAB_KEYS = ['major', 'wands', 'cups', 'swords', 'pentacles'] as const
 
 // 手動輸入：現實中抽了實體牌，逐位置選牌（含正逆位）後進共用結果頁
 export function ManualEntry({ spread }: { spread: DrawableSpread }) {
   const openReading = useApp((s) => s.openReading)
-  const def = SPREADS[spread]
+  const lang = useApp((s) => s.lang)
+  const T = STRINGS[lang]
+  const def = getSpreads(lang)[spread]
   const need = SPREAD_SIZE[spread]
 
   const [question, setQuestion] = useState('')
   const [chosen, setChosen] = useState<DrawnCard[]>([])
-  const [tab, setTab] = useState<(typeof TABS)[number]['key']>('major')
+  const [tab, setTab] = useState<(typeof TAB_KEYS)[number]>('major')
   const [query, setQuery] = useState('')
   const [pendingId, setPendingId] = useState<string | null>(null) // 已點牌、待選正逆位
 
@@ -32,6 +30,11 @@ export function ManualEntry({ spread }: { spread: DrawableSpread }) {
     () => (query.trim() ? searchCards(query) : REGISTRY.filter((e) => e.id.startsWith(tab))),
     [query, tab],
   )
+
+  const tabLabel = (key: (typeof TAB_KEYS)[number]) =>
+    key === 'major' ? T.tabMajor : lang === 'en' ? SUIT_NAMES_EN[key] : SUIT_NAMES[key]
+
+  const cardName = (e: RegistryEntry) => (lang === 'en' ? e.nameEn : e.name)
 
   const confirmOrientation = (reversed: boolean) => {
     if (!pendingId) return
@@ -45,13 +48,11 @@ export function ManualEntry({ spread }: { spread: DrawableSpread }) {
 
   return (
     <div className="manual-entry">
-      <h2 className="reading-title">輸入你抽到的牌</h2>
-      <p className="reading-intro">
-        {def.name}——在現實中抽好了牌？照抽牌順序在下面選出來，馬上看解讀。
-      </p>
+      <h2 className="reading-title">{T.manualTitle}</h2>
+      <p className="reading-intro">{T.manualIntro(def.name)}</p>
       <input
         className="question-input"
-        placeholder="你問的問題（選填，不會出現在分享連結裡）"
+        placeholder={T.manualQuestionPlaceholder}
         value={question}
         maxLength={60}
         onChange={(e) => setQuestion(e.target.value)}
@@ -63,58 +64,58 @@ export function ManualEntry({ spread }: { spread: DrawableSpread }) {
             <span className="slot-pos">{p.title}</span>
             {chosen[i] ? (
               <span className="slot-card">
-                {REGISTRY[chosen[i].index].name}
+                {cardName(REGISTRY[chosen[i].index])}
                 <span className={`ori-badge ${chosen[i].reversed ? 'rev' : 'up'}`}>
-                  {chosen[i].reversed ? '逆位' : '正位'}
+                  {chosen[i].reversed ? T.reversed : T.upright}
                 </span>
               </span>
             ) : (
-              <span className="slot-empty">{i === chosen.length ? '請選牌' : '—'}</span>
+              <span className="slot-empty">{i === chosen.length ? T.pickForSlot : '—'}</span>
             )}
           </div>
         ))}
         {chosen.length > 0 && (
           <button type="button" className="btn subtle" onClick={() => setChosen(chosen.slice(0, -1))}>
-            退回上一張
+            {T.undoPick}
           </button>
         )}
       </div>
 
       {pendingId ? (
         <div className="orientation-pick">
-          <p className="pick-hint">「{REGISTRY[indexOfCard(pendingId)].name}」是正位還是逆位？</p>
+          <p className="pick-hint">{T.orientationAsk(cardName(REGISTRY[indexOfCard(pendingId)]))}</p>
           <div className="orientation-options">
             <button type="button" className="orientation-btn" onClick={() => confirmOrientation(false)}>
               <CardFace index={indexOfCard(pendingId)} reversed={false} />
-              <span>正位</span>
+              <span>{T.upright}</span>
             </button>
             <button type="button" className="orientation-btn" onClick={() => confirmOrientation(true)}>
               <CardFace index={indexOfCard(pendingId)} reversed={true} />
-              <span>逆位</span>
+              <span>{T.reversed}</span>
             </button>
           </div>
           <button type="button" className="btn subtle" onClick={() => setPendingId(null)}>
-            換一張
+            {T.switchCard}
           </button>
         </div>
       ) : (
         <>
           <input
             className="search-input"
-            placeholder="搜尋：愚者 / fool / 權杖3⋯⋯"
+            placeholder={T.searchPlaceholder}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
           {!query.trim() && (
             <div className="suit-tabs">
-              {TABS.map((t) => (
+              {TAB_KEYS.map((t) => (
                 <button
                   type="button"
-                  key={t.key}
-                  className={`btn tab ${tab === t.key ? 'active' : ''}`}
-                  onClick={() => setTab(t.key)}
+                  key={t}
+                  className={`btn tab ${tab === t ? 'active' : ''}`}
+                  onClick={() => setTab(t)}
                 >
-                  {t.label}
+                  {tabLabel(t)}
                 </button>
               ))}
             </div>
@@ -132,11 +133,11 @@ export function ManualEntry({ spread }: { spread: DrawableSpread }) {
                   onClick={() => setPendingId(e.id)}
                 >
                   <CardFace index={idx} reversed={false} />
-                  <span className="grid-name">{e.name}</span>
+                  <span className="grid-name">{cardName(e)}</span>
                 </button>
               )
             })}
-            {list.length === 0 && <p className="pending-note">找不到符合的牌，換個關鍵字試試。</p>}
+            {list.length === 0 && <p className="pending-note">{T.noSearchHit}</p>}
           </div>
         </>
       )}

@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { SPREADS, SPREAD_SIZE } from '../content/positions'
+import { getSpreads, SPREAD_SIZE } from '../content/positions'
 import { REGISTRY } from '../content/registry'
 import { shuffledDeck, drawFromDeck, type DrawnCard } from '../lib/draw'
 import type { DrawableSpread } from '../lib/share'
 import { useApp } from '../state'
+import { STRINGS } from '../lib/i18n'
 import { CardBack, CardFace } from './CardFace'
 
 type Step = 'ask' | 'shuffle' | 'cut' | 'pick' | 'reveal'
@@ -17,7 +18,9 @@ function cryptoInt(max: number): number {
 // 儀式感抽牌流程：問題（選填）→ 洗牌 → 切三刀 → 弧形扇排親手點選 → 逐張翻牌 → 結果頁
 export function DrawFlow({ spread }: { spread: DrawableSpread }) {
   const openReading = useApp((s) => s.openReading)
-  const def = SPREADS[spread]
+  const lang = useApp((s) => s.lang)
+  const T = STRINGS[lang]
+  const def = getSpreads(lang)[spread]
   const need = SPREAD_SIZE[spread]
 
   const [step, setStep] = useState<Step>('ask')
@@ -73,19 +76,19 @@ export function DrawFlow({ spread }: { spread: DrawableSpread }) {
           <p className="reading-intro">{def.intro}</p>
           <input
             className="question-input"
-            placeholder="心裡想著你的問題（選填，不會出現在分享連結裡）"
+            placeholder={T.questionPlaceholder}
             value={question}
             maxLength={60}
             onChange={(e) => setQuestion(e.target.value)}
           />
           <button type="button" className="btn primary big" onClick={() => setStep('shuffle')}>
-            開始洗牌
+            {T.startShuffle}
           </button>
         </div>
       )}
 
       {step === 'shuffle' && (
-        <div className="shuffle-stage" aria-label="洗牌中">
+        <div className="shuffle-stage" aria-label="shuffling">
           <div className="shuffle-cards">
             {Array.from({ length: 7 }, (_, i) => (
               <div className="shuffle-card" style={{ animationDelay: `${i * 0.12}s` }} key={i}>
@@ -93,29 +96,27 @@ export function DrawFlow({ spread }: { spread: DrawableSpread }) {
               </div>
             ))}
           </div>
-          <p className="shuffle-hint">洗牌中，心裡默想你的問題⋯⋯</p>
+          <p className="shuffle-hint">{T.shuffling}</p>
         </div>
       )}
 
       {step === 'cut' && (
         <div className="cut-stage">
-          <p className="pick-hint">請切牌三刀（{cuts}/3）——每點一下，就切一刀</p>
-          <button type="button" className="cut-deck" onClick={cut} aria-label="切牌">
+          <p className="pick-hint">{T.cutHint(cuts)}</p>
+          <button type="button" className="cut-deck" onClick={cut} aria-label="cut the deck">
             {Array.from({ length: 5 }, (_, i) => (
               <div className="cut-card" key={`${cuts}-${i}`} style={{ animationDelay: `${i * 0.04}s` }}>
                 <span className="card-back-star">✦</span>
               </div>
             ))}
           </button>
-          <p className="shuffle-hint">切到你覺得「就是這裡」為止。</p>
+          <p className="shuffle-hint">{T.cutNote}</p>
         </div>
       )}
 
       {step === 'pick' && (
         <div className="pick-stage">
-          <p className="pick-hint">
-            憑直覺點選 {need} 張牌（還差 {need - picked.length} 張）
-          </p>
+          <p className="pick-hint">{T.pickHint(need, need - picked.length)}</p>
           <div className="fan-arc">
             {Array.from({ length: 78 }, (_, i) => (
               <div
@@ -132,7 +133,7 @@ export function DrawFlow({ spread }: { spread: DrawableSpread }) {
 
       {step === 'reveal' && (
         <div className="reveal-stage">
-          <p className="pick-hint">{allFlipped ? '牌都翻開了。' : '逐張點開你抽到的牌'}</p>
+          <p className="pick-hint">{allFlipped ? T.allFlipped : T.flipEach}</p>
           <div className="reveal-cards">
             {drawn.map((c, i) => (
               <div className="reveal-slot" key={c.index}>
@@ -149,8 +150,8 @@ export function DrawFlow({ spread }: { spread: DrawableSpread }) {
                 </div>
                 {flipped[i] && (
                   <p className="card-caption small">
-                    {REGISTRY[c.index].name}
-                    <span className={`ori-badge ${c.reversed ? 'rev' : 'up'}`}>{c.reversed ? '逆位' : '正位'}</span>
+                    {lang === 'en' ? REGISTRY[c.index].nameEn : REGISTRY[c.index].name}
+                    <span className={`ori-badge ${c.reversed ? 'rev' : 'up'}`}>{c.reversed ? T.reversed : T.upright}</span>
                   </p>
                 )}
               </div>
@@ -162,7 +163,7 @@ export function DrawFlow({ spread }: { spread: DrawableSpread }) {
               className="btn primary big see-reading"
               onClick={() => openReading(spread, drawn, question.trim() || undefined)}
             >
-              看完整解讀
+              {T.seeReading}
             </button>
           )}
         </div>

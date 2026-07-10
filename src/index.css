@@ -458,3 +458,6 @@ body {
   .cal-cell { min-height: 52px; }
   .cal-card-name { font-size: 10px; }
 }
+
+/* 語言切換 */
+.lang-toggle { margin-left: auto; padding: 5px 12px; font-size: 13px; }
