@@ -452,12 +452,33 @@ body {
 .home-links .browse-link { margin: 0; text-align: left; }
 
 @media (max-width: 560px) {
-  .fan-arc { height: 210px; }
-  .fan-slot { width: 40px; height: 280px; bottom: -100px; }
-  .fan-slot .fan-card { width: 40px; }
+  /* 手機：弧形排不下 78 張（每張剩 4px），改橫向滑動攤牌帶 */
+  .fan-arc {
+    height: auto;
+    display: flex;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 16px 14px 12px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .fan-slot {
+    position: relative;
+    left: auto;
+    bottom: auto;
+    transform: none !important; /* 蓋掉 inline 的弧形旋轉 */
+    width: auto;
+    height: auto;
+    flex: 0 0 26px; /* 每張露出的寬度 */
+    min-width: 0; /* 沒這行 flex-basis 會被內容寬（52px 的牌）撐開，疊不起來 */
+  }
+  .fan-slot .fan-card { position: relative; top: auto; width: 52px; }
+  .fan-slot:last-child { flex-basis: 56px; }
+  .pick-stage .swipe-hint { display: block; }
   .cal-cell { min-height: 52px; }
   .cal-card-name { font-size: 10px; }
 }
+
+.swipe-hint { display: none; color: var(--text-dim); font-size: 12px; text-align: center; margin: 4px 0 0; letter-spacing: 1px; }
 
 /* 語言切換 */
 .lang-toggle { margin-left: auto; padding: 5px 12px; font-size: 13px; }

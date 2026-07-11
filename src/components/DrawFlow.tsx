@@ -117,6 +117,7 @@ export function DrawFlow({ spread }: { spread: DrawableSpread }) {
       {step === 'pick' && (
         <div className="pick-stage">
           <p className="pick-hint">{T.pickHint(need, need - picked.length)}</p>
+          <p className="swipe-hint">{T.swipeHint}</p>
           <div className="fan-arc">
             {Array.from({ length: 78 }, (_, i) => (
               <div
