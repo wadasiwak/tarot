@@ -33,6 +33,7 @@ export type View =
   | { name: 'journal' } // 每日一牌月曆回顧＋連續打卡
   | { name: 'learn'; section?: LearnSection } // 塔羅小學堂（可帶章節錨點 #learn/reversed）
   | { name: 'study' } // 牌義學習（SRS 記憶卡＋測驗；進度只存本機，不進 URL）
+  | { name: 'mycard' } // 生日牌／年度牌（生日只存本機，絕不進 URL / analytics）
 
 // URL hash 同步。⚠️ question 絕不進 URL（個資）。
 export function viewToHash(view: View): string {
@@ -57,6 +58,8 @@ export function viewToHash(view: View): string {
       return view.section ? `#learn/${view.section}` : '#learn'
     case 'study':
       return '#study'
+    case 'mycard':
+      return '#mycard'
   }
 }
 
@@ -82,6 +85,7 @@ export function hashToView(hash: string): View {
   if (head === 'cards' && a === undefined) return { name: 'browse' }
   if (head === 'journal' && a === undefined) return { name: 'journal' }
   if (head === 'study' && a === undefined) return { name: 'study' }
+  if (head === 'mycard' && a === undefined) return { name: 'mycard' }
   if (head === 'learn' && a === undefined) return { name: 'learn' }
   if (head === 'learn' && a && isLearnSection(a) && b === undefined) return { name: 'learn', section: a }
   if (head === 'card' && a && validId(a) && (b === undefined || b === 'r'))

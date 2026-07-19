@@ -73,15 +73,33 @@ export function Reading({ spread, cards, question }: { spread: DrawableSpread; c
         </p>
       )}
 
+      {spread === 'celtic' && (
+        // 經典十字＋權杖列的縮圖總覽：點任一張捲到對應段落（可讀性交給下方直列）
+        <div className="celtic-map" aria-label="celtic cross overview">
+          {cards.map((c, i) => (
+            <button
+              type="button"
+              className={`celtic-cell pos-${i + 1}`}
+              key={c.index}
+              title={`${i + 1}・${def.positions[i].title}`}
+              onClick={() => document.getElementById(`celtic-pos-${i + 1}`)?.scrollIntoView({ behavior: 'smooth' })}
+            >
+              <CardFace index={c.index} reversed={c.reversed} />
+              <span className="celtic-num">{i + 1}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className={`reading-cards spread-${spread}`}>
         {cards.map((c, i) => {
           const pos = def.positions[i]
           const item = readings[i]
           const entry = REGISTRY[c.index]
           return (
-            <section className="reading-card" key={c.index}>
+            <section className="reading-card" key={c.index} id={spread === 'celtic' ? `celtic-pos-${i + 1}` : undefined}>
               <header className="position-head">
-                <h3>{pos.title}</h3>
+                <h3>{spread === 'celtic' ? `${i + 1}・${pos.title}` : pos.title}</h3>
                 <p className="position-frame">{pos.frame}</p>
               </header>
               <div className="reading-card-body">
@@ -111,14 +129,24 @@ export function Reading({ spread, cards, question }: { spread: DrawableSpread; c
                     )}
                     <p className="core">{item.r.core}</p>
                     {(() => {
-                      // 位置白話句：三張=過去/現在/建議；關係=我(present)/對方(other)/走向(建議)
+                      // 位置白話句：三張=過去/現在/建議；關係=我(present)/對方(other)/走向(建議)；
+                      // 凱爾特十字=位置層級銜接句（positions.ts），最後的「結果」位再補上這張牌的行動建議
                       const bridge =
-                        spread === 'three'
-                          ? [item.r.past, item.r.present, item.r.advice][i]
-                          : spread === 'relation'
-                            ? [item.r.present, item.r.other, item.r.advice][i]
-                            : item.r.advice
-                      return bridge ? <p className="advice">💡 {bridge}</p> : null
+                        spread === 'celtic'
+                          ? pos.bridge
+                          : spread === 'three'
+                            ? [item.r.past, item.r.present, item.r.advice][i]
+                            : spread === 'relation'
+                              ? [item.r.present, item.r.other, item.r.advice][i]
+                              : item.r.advice
+                      return (
+                        <>
+                          {bridge && <p className="advice">💡 {bridge}</p>}
+                          {spread === 'celtic' && i === cards.length - 1 && (
+                            <p className="advice">💡 {item.r.advice}</p>
+                          )}
+                        </>
+                      )
                     })()}
                     <button
                       type="button"

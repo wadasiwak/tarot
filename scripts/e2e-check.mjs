@@ -3,6 +3,7 @@
 // 需先 npm run build；本腳本自行啟動 vite preview（port 5231，避開 dev server 5230）。
 import { spawn } from 'node:child_process'
 import { chromium } from 'playwright'
+import { REGISTRY } from '../src/content/registry.ts' // Node 原生 type stripping（年度牌名比對用）
 
 const PORT = 5231
 const BASE_URL = `http://localhost:${PORT}/`
@@ -39,9 +40,10 @@ try {
   await page.goto(BASE_URL)
   await page.waitForSelector('.daily-card', { timeout: 5000 })
   const modeCards = await page.$$('.mode-card')
-  if (modeCards.length !== 4) fail(`首頁應有 4 張模式卡，實得 ${modeCards.length}`)
+  if (modeCards.length !== 5) fail(`首頁應有 5 張模式卡（含凱爾特十字），實得 ${modeCards.length}`)
+  if (!(await page.textContent('.mode-card:nth-child(5) .adv-badge')).includes('進階')) fail('凱爾特十字模式卡應標「進階・10 張」')
   const homeLinks = await page.$$('.browse-link')
-  if (homeLinks.length !== 4) fail(`首頁應有牌庫/小學堂/牌義學習/回顧四個入口，實得 ${homeLinks.length}`)
+  if (homeLinks.length !== 5) fail(`首頁應有牌庫/小學堂/牌義學習/我的牌/回顧五個入口，實得 ${homeLinks.length}`)
   if (!(await page.$('.first-visit-card'))) fail('首訪（無任何紀錄）首頁應顯示入門卡')
   await page.click('.first-visit-card')
   await page.waitForSelector('.learn', { timeout: 3000 }).catch(() => fail('首訪入門卡應連到小學堂'))
@@ -438,10 +440,136 @@ try {
   await page.waitForSelector('.study', { timeout: 3000 })
   if ((await page.evaluate(() => location.hash)) !== '#study') fail('學習頁 hash 應為 #study，不得夾帶學習資料')
 
+  // 20. 凱爾特十字線上抽：問題 → 洗牌 → 切三刀 → 扇排點 10 張 → 翻 10 張 → 解讀
+  await page.goto(`${BASE_URL}#draw/celtic`)
+  await page.reload()
+  await page.fill('.question-input', 'celtic e2e 測試')
+  await page.click('.draw-ask .btn.primary')
+  await page.waitForSelector('.cut-deck', { timeout: 6000 })
+  for (let i = 0; i < 3; i++) {
+    await page.click('.cut-deck')
+    await page.waitForTimeout(150)
+  }
+  await page.waitForSelector('.fan-arc', { timeout: 3000 })
+  const fan10 = await page.$$('.fan-slot .fan-card')
+  if (fan10.length !== 78) fail(`凱爾特十字扇面應 78 張牌背，實得 ${fan10.length}`)
+  await fan10[77].click()
+  for (const i of [70, 60, 50, 40, 30, 20, 10, 5, 0]) await fan10[i].click({ force: true })
+  await page.waitForSelector('.reveal-cards', { timeout: 3000 })
+  const flip10 = await page.$$('.flip-box')
+  if (flip10.length !== 10) fail(`凱爾特十字應翻 10 張，實得 ${flip10.length}`)
+  for (const box of flip10) await box.click()
+  await page.waitForSelector('.see-reading', { timeout: 3000 })
+  await page.click('.see-reading')
+  await page.waitForSelector('.reading', { timeout: 3000 })
+  const celticSections = await page.$$('.reading-card')
+  if (celticSections.length !== 10) fail(`凱爾特十字解讀應 10 區段，實得 ${celticSections.length}`)
+  const celticNames = await page.$$eval('.reading .card-caption', (els) => els.map((e) => e.textContent.replace(/正位|逆位/g, '').trim()))
+  if (new Set(celticNames).size !== 10) fail(`凱爾特十字 10 張牌不應重複：${celticNames.join('、')}`)
+  const celticTitles = await page.$$eval('.position-head h3', (els) => els.map((e) => e.textContent))
+  for (const t of ['現況', '挑戰', '根基', '過去', '顯意識', '未來', '自身態度', '環境', '希望與恐懼', '結果'])
+    if (!celticTitles.some((x) => x.includes(t))) fail(`凱爾特十字缺位置「${t}」`)
+  if ((await page.$$('.celtic-map .celtic-cell')).length !== 10) fail('凱爾特十字應有 10 張縮圖總覽')
+  const celticBridges = await page.$$eval('.reading-card', (els) => els.map((e) => e.querySelector('.advice') !== null))
+  if (!celticBridges.every(Boolean)) fail(`凱爾特十字每個位置都應有 💡 銜接句，實得 ${JSON.stringify(celticBridges)}`)
+  if (await page.$('.verdict-badge')) fail('凱爾特十字不是是非題陣，不應出現傾向徽章')
+  if (!(await page.$('.share-image'))) fail('凱爾特十字結果頁缺「存成圖卡」按鈕')
+
+  // 20b. 凱爾特十字分享連結：10 個 token、新分頁還原一致
+  await page.click('.reading-actions .btn:first-child')
+  const celticShared = await page.evaluate(() => navigator.clipboard.readText())
+  if (!/#r\/celtic\/(\d{1,2}r?-){9}\d{1,2}r?$/.test(celticShared)) fail(`凱爾特十字分享連結格式不對：${celticShared}`)
+  const pageC = await context.newPage()
+  await pageC.goto(celticShared)
+  await pageC.waitForSelector('.reading', { timeout: 5000 })
+  const celticNames2 = await pageC.$$eval('.reading .card-caption', (els) => els.map((e) => e.textContent.trim()))
+  const celticNames1 = await page.$$eval('.reading .card-caption', (els) => els.map((e) => e.textContent.trim()))
+  if (JSON.stringify(celticNames1) !== JSON.stringify(celticNames2)) fail('凱爾特十字分享連結開啟結果與原頁不一致')
+  await pageC.close()
+
+  // 20c. 凱爾特十字手動輸入：進度指示逐張推進 → 10 區段解讀
+  await page.goto(`${BASE_URL}#manual/celtic`)
+  await page.reload()
+  await page.waitForSelector('.manual-entry', { timeout: 3000 })
+  for (let i = 0; i < 10; i++) {
+    const prog = await page.textContent('.pick-progress')
+    if (!prog.includes(`${i + 1}/10`)) fail(`手動輸入進度指示應顯示第 ${i + 1}/10 張，實得「${prog}」`)
+    await page.click('.card-grid .grid-cell:not(.used)')
+    await page.waitForSelector('.orientation-options', { timeout: 3000 })
+    await page.click('.orientation-options .orientation-btn:first-child')
+    await page.waitForTimeout(100)
+  }
+  await page.waitForSelector('.reading', { timeout: 3000 })
+  if ((await page.$$('.reading-card')).length !== 10) fail('凱爾特十字手動輸入應進 10 區段解讀')
+
+  // 21. 我的牌：固定生日 1990-07-23 → 生日牌皇帝（31→4）；年度牌依今年同法重算比對；生日不進 URL
+  await page.goto(`${BASE_URL}#mycard`)
+  await page.reload()
+  await page.waitForSelector('.mycard-form', { timeout: 3000 })
+  await page.fill('.birthday-input', '1990-07-23')
+  await page.click('.mycard-show')
+  await page.waitForSelector('.mycard-results', { timeout: 3000 })
+  const birthCaption = await page.textContent('.mycard-birth .card-caption')
+  if (!birthCaption.includes('皇帝')) fail(`生日牌 1990-07-23 應為皇帝，實得 ${birthCaption}`)
+  const digitSum = (n) => String(n).split('').reduce((a, c) => a + Number(c), 0)
+  let ySum = digitSum(7) + digitSum(23) + digitSum(new Date().getFullYear())
+  while (ySum > 22) ySum = digitSum(ySum)
+  const expectYearIdx = ySum === 22 ? 0 : ySum
+  const yearCaption = await page.textContent('.mycard-year .card-caption')
+  if (!yearCaption.includes(REGISTRY[expectYearIdx].name)) fail(`年度牌應為 ${REGISTRY[expectYearIdx].name}（${expectYearIdx}），實得 ${yearCaption}`)
+  if ((await page.evaluate(() => localStorage.getItem('tarot.birthday.v1'))) !== '1990-07-23') fail('生日應存 localStorage')
+  const myUrl = await page.evaluate(() => location.href)
+  if (myUrl.includes('1990') || !myUrl.endsWith('#mycard')) fail(`生日絕不進 URL，hash 應為 #mycard：${myUrl}`)
+  await page.reload()
+  await page.waitForSelector('.mycard-results', { timeout: 3000 }).catch(() => fail('reload 後應直接用存好的生日顯示結果'))
+  if (!(await page.$('.mycard-results .share-image'))) fail('我的牌缺「存成圖卡」按鈕')
+
+  // 22. 統計：<10 筆顯示「多抽幾次」；注入資料後 Top5/正逆位/牌陣次數渲染（含去重）
+  await page.evaluate(() => {
+    localStorage.removeItem('tarot.recent.v1')
+    localStorage.removeItem('tarot.saved.v1')
+    localStorage.removeItem('tarot.daily.v1')
+  })
+  await page.goto(`${BASE_URL}#journal`)
+  await page.reload()
+  await page.waitForSelector('.stats-section', { timeout: 3000 })
+  if (!(await page.$('.stats-few'))) fail('無紀錄時統計區應顯示「多抽幾次再來看」提示')
+  await page.evaluate(() => {
+    localStorage.setItem(
+      'tarot.recent.v1',
+      JSON.stringify([
+        { spread: 'three', cards: [{ index: 0, reversed: false }, { index: 1, reversed: true }, { index: 2, reversed: false }], at: '2026-07-01' },
+        { spread: 'celtic', cards: Array.from({ length: 10 }, (_, i) => ({ index: i, reversed: i % 3 === 0 })), at: '2026-07-02' },
+        { spread: 'yesno', cards: [{ index: 0, reversed: false }], at: '2026-07-03' },
+        { spread: 'yesno', cards: [{ index: 5, reversed: true }], at: '2026-07-04' },
+        { spread: 'choice', cards: [{ index: 7, reversed: false }, { index: 9, reversed: false }], at: '2026-07-05' },
+      ]),
+    )
+    // 與最近重複的收藏（驗證 entryKey 去重不重複計）
+    localStorage.setItem('tarot.saved.v1', JSON.stringify([{ id: 'x1', spread: 'yesno', cards: [{ index: 0, reversed: false }], at: '2026-07-03' }]))
+    const days = {}
+    for (let d = 1; d <= 6; d++) days[`2026-06-0${d}`] = { index: 0, reversed: d % 2 === 0 }
+    localStorage.setItem('tarot.daily.v1', JSON.stringify({ '': days }))
+  })
+  await page.reload()
+  await page.waitForSelector('.stats-body', { timeout: 3000 })
+  const readingsNum = await page.textContent('.stats-tiles .stat-box:first-child .stat-num')
+  if (readingsNum !== '11') fail(`累計抽牌應 11 次（6 daily + 5 spread，收藏去重），實得 ${readingsNum}`)
+  const topRows = await page.$$('.top-card-row')
+  if (topRows.length !== 5) fail(`Top 5 應 5 列，實得 ${topRows.length}`)
+  const topFirst = await page.textContent('.top-card-row:first-child')
+  if (!topFirst.includes('愚者') || !topFirst.includes('× 9')) fail(`Top 1 應為愚者 × 9，實得 ${topFirst}`)
+  const chipsText = await page.textContent('.spread-chips')
+  for (const c of ['每日一牌 × 6', '三張牌陣 × 1', '是非一問 × 2', '二選一 × 1', '凱爾特十字 × 1'])
+    if (!chipsText.includes(c)) fail(`牌陣使用次數缺「${c}」，實得 ${chipsText}`)
+  if (!(await page.$('.ori-bar'))) fail('統計區缺正逆位比例條')
+  const oriLegend = await page.textContent('.ori-bar-legend')
+  if (!oriLegend.includes('（14）') || !oriLegend.includes('（9）')) fail(`正逆位應 14/9，實得 ${oriLegend}`)
+
   if (consoleErrors.length) fail(`頁面有未捕捉錯誤：${consoleErrors.join(' | ')}`)
 
   await browser.close()
-  console.log('e2e OK：首頁+首訪入門卡、每日一牌seed、hash直開、非法hash防禦、抽牌流程、分享還原、AI複製、是非、手動輸入、GoatCounter隱私、免責、牌庫78格、最近紀錄+單筆刪除、收藏+筆記、Journal收藏清單、暱稱改名、小學堂錨點與交叉連結、牌義學習(記憶卡/測驗/持久化/加入學習)全部通過')
+  console.log('e2e OK：首頁+首訪入門卡、每日一牌seed、hash直開、非法hash防禦、抽牌流程、分享還原、AI複製、是非、手動輸入、GoatCounter隱私、免責、牌庫78格、最近紀錄+單筆刪除、收藏+筆記、Journal收藏清單、暱稱改名、小學堂錨點與交叉連結、牌義學習(記憶卡/測驗/持久化/加入學習)、凱爾特十字(線上抽/手動/分享還原/十字總覽)、我的牌(生日牌/年度牌/本機保存)、抽牌統計(門檻/Top5/去重)全部通過')
 } finally {
   server.kill()
 }

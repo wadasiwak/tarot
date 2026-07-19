@@ -81,6 +81,11 @@ export function ManualEntry({ spread }: { spread: DrawableSpread }) {
         )}
       </div>
 
+      {chosen.length < need && (
+        // 進度指示：多張牌陣（尤其凱爾特十字 10 張）逐張挑選時的定位感
+        <p className="pick-progress">{T.pickProgress(chosen.length + 1, need)}</p>
+      )}
+
       {pendingId ? (
         <div className="orientation-pick">
           <p className="pick-hint">{T.orientationAsk(cardName(REGISTRY[indexOfCard(pendingId)]))}</p>

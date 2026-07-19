@@ -272,6 +272,26 @@ export function recordQuizAnswer(id: string, correct: boolean, today: string): S
   return persistStudy(s)
 }
 
+// 生日（生日牌／年度牌用；只存本機，絕不進 URL / analytics）
+const BIRTHDAY_KEY = 'tarot.birthday.v1'
+
+export function loadBirthday(): string {
+  try {
+    return localStorage.getItem(BIRTHDAY_KEY) ?? ''
+  } catch {
+    return ''
+  }
+}
+
+export function saveBirthday(date: string): void {
+  try {
+    if (date) localStorage.setItem(BIRTHDAY_KEY, date)
+    else localStorage.removeItem(BIRTHDAY_KEY)
+  } catch {
+    // ignore
+  }
+}
+
 export function clearRecent(): void {
   try {
     localStorage.removeItem(KEY)

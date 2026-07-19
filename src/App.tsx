@@ -10,6 +10,7 @@ import { CardDetail } from './components/CardDetail'
 import { Journal } from './components/Journal'
 import { Learn } from './components/Learn'
 import { Study } from './components/Study'
+import { MyCard } from './components/MyCard'
 
 export default function App() {
   const view = useApp((s) => s.view)
@@ -47,6 +48,7 @@ export default function App() {
       {view.name === 'journal' && <Journal />}
       {view.name === 'learn' && <Learn section={view.section} />}
       {view.name === 'study' && <Study />}
+      {view.name === 'mycard' && <MyCard />}
 
       <footer className="app-footer">
         <p>{T.footerLine1}</p>

@@ -709,6 +709,162 @@ body {
   .study-card-img { width: 140px; }
 }
 
+/* 凱爾特十字 */
+.adv-badge {
+  display: inline-block;
+  margin-left: 8px;
+  vertical-align: 2px;
+  background: rgba(201, 168, 76, 0.15);
+  border: 1px solid var(--accent);
+  color: var(--accent-bright);
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+.mode-card:nth-child(5) { border-top-color: #b8654f; }
+
+/* 縮圖總覽：經典十字（2 橫疊 1）＋右側權杖列 7→10 由下而上 */
+.celtic-map {
+  display: grid;
+  grid-template-areas:
+    '.  p5 .  p10'
+    'p4 p1 p6 p9'
+    '.  p3 .  p8'
+    '.  .  .  p7';
+  grid-template-columns: repeat(4, 68px);
+  grid-auto-rows: minmax(96px, auto);
+  gap: 12px 10px;
+  justify-content: center;
+  align-items: center;
+  margin: 14px 0 22px;
+}
+.celtic-cell {
+  position: relative;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 62px;
+  justify-self: center;
+}
+.celtic-cell .card-face { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5); }
+.celtic-cell:hover .card-face { outline: 2px solid var(--accent); }
+.celtic-num {
+  position: absolute;
+  top: -7px;
+  left: -7px;
+  z-index: 3;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--panel-2);
+  border: 1px solid var(--accent);
+  color: var(--accent-bright);
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.celtic-cell.pos-1 { grid-area: p1; }
+.celtic-cell.pos-2 { grid-area: p1; transform: rotate(90deg) scale(0.9); z-index: 2; }
+.celtic-cell.pos-2 .celtic-num { transform: rotate(-90deg); }
+.celtic-cell.pos-3 { grid-area: p3; }
+.celtic-cell.pos-4 { grid-area: p4; }
+.celtic-cell.pos-5 { grid-area: p5; }
+.celtic-cell.pos-6 { grid-area: p6; }
+.celtic-cell.pos-7 { grid-area: p7; }
+.celtic-cell.pos-8 { grid-area: p8; }
+.celtic-cell.pos-9 { grid-area: p9; }
+.celtic-cell.pos-10 { grid-area: p10; }
+.reading-card { scroll-margin-top: 12px; }
+
+/* 抽 10 張時翻牌區縮小 */
+.reveal-cards.many { gap: 14px; }
+.reveal-cards.many .reveal-slot { width: 118px; }
+.reveal-cards.many .reveal-pos { font-size: 12px; letter-spacing: 1px; }
+
+/* 手動輸入進度指示 */
+.pick-progress { color: var(--accent-bright); font-size: 14px; letter-spacing: 2px; margin: 2px 0 4px; }
+
+/* 我的牌（生日牌／年度牌） */
+.mycard-form { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; margin: 14px 0; }
+.mycard-label { color: var(--text-dim); font-size: 13px; letter-spacing: 1px; }
+.birthday-input { max-width: 280px; font-family: inherit; color-scheme: dark; }
+.mycard-bad { color: var(--poor); font-size: 13px; margin: 0 0 6px; }
+.mycard-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.mycard-birth { border-top: 3px solid var(--accent); }
+.mycard-year { border-top: 3px solid var(--violet); }
+.mycard-context { display: block; }
+.mycard-context-label {
+  display: inline-block;
+  margin-right: 8px;
+  background: rgba(143, 123, 216, 0.16);
+  border: 1px solid var(--violet);
+  color: #cfc4f2;
+  border-radius: 999px;
+  padding: 1px 9px;
+  font-size: 11px;
+  letter-spacing: 1px;
+  vertical-align: 1px;
+}
+
+/* 抽牌統計 */
+.stats-section { margin: 26px 0 8px; }
+.stats-sub { color: var(--accent-bright); font-size: 14px; letter-spacing: 2px; margin: 18px 0 8px; }
+.stats-tiles { grid-template-columns: repeat(2, 1fr); max-width: 420px; }
+.ori-bar {
+  height: 14px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 138, 122, 0.28);
+  border: 1px solid var(--border);
+}
+.ori-bar-up { display: block; height: 100%; background: rgba(79, 208, 138, 0.55); }
+.ori-bar-legend { display: flex; justify-content: space-between; font-size: 12.5px; margin: 6px 0 0; }
+.ori-up-text { color: var(--good); }
+.ori-rev-text { color: var(--poor); }
+.spread-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.spread-chip {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 13px;
+  color: var(--text);
+}
+.top-cards { display: flex; flex-direction: column; gap: 6px; }
+.top-card-row {
+  display: grid;
+  grid-template-columns: 22px minmax(72px, auto) 1fr auto;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  color: var(--text);
+  font-size: 13.5px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+.top-card-row:hover { border-color: var(--violet); }
+.top-rank { color: var(--accent-bright); font-size: 13px; }
+.top-name { white-space: nowrap; }
+.top-bar-track { height: 8px; border-radius: 999px; background: rgba(255, 255, 255, 0.05); overflow: hidden; }
+.top-bar { display: block; height: 100%; background: linear-gradient(90deg, var(--violet), var(--accent)); border-radius: 999px; }
+.top-count { color: var(--text-dim); font-size: 12.5px; }
+
+@media (max-width: 560px) {
+  .celtic-map { grid-template-columns: repeat(4, 58px); grid-auto-rows: minmax(84px, auto); gap: 10px 8px; }
+  .celtic-cell { width: 54px; }
+  .reveal-cards.many .reveal-slot { width: 96px; }
+  .mycard-cards { grid-template-columns: 1fr; }
+}
+
 /* 小學堂交叉連結 */
 .learn-section { scroll-margin-top: 12px; }
 .ori-badge.clickable { cursor: pointer; font-family: inherit; }

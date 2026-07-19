@@ -35,11 +35,30 @@ try {
     ['browse', '#cards'],
     ['detail', '#card/major-13/r'],
     ['reading-relation', '#r/relation/6-36r-45'],
+    ['reading-celtic', '#r/celtic/0-5r-13-22-30r-41-50r-60-70-77'],
+    ['manual-celtic', '#manual/celtic'],
+    ['mycard', '#mycard'],
     ['learn', '#learn'],
     ['journal', '#journal'],
   ]
   for (const [w, label] of [[1080, 'desktop'], [390, 'mobile']]) {
     const page = await browser.newPage({ viewport: { width: w, height: 1400 } })
+    // 種統計資料：journal 截圖才看得到 📊 統計區的完整樣貌
+    await page.goto(BASE_URL)
+    await page.evaluate(() => {
+      localStorage.setItem(
+        'tarot.recent.v1',
+        JSON.stringify([
+          { spread: 'three', cards: [{ index: 0, reversed: false }, { index: 1, reversed: true }, { index: 2, reversed: false }], at: '2026-07-01' },
+          { spread: 'celtic', cards: Array.from({ length: 10 }, (_, i) => ({ index: i, reversed: i % 3 === 0 })), at: '2026-07-02' },
+          { spread: 'yesno', cards: [{ index: 0, reversed: false }], at: '2026-07-03' },
+          { spread: 'choice', cards: [{ index: 7, reversed: false }, { index: 9, reversed: false }], at: '2026-07-05' },
+        ]),
+      )
+      const days = {}
+      for (let d = 1; d <= 6; d++) days[`2026-06-0${d}`] = { index: 0, reversed: d % 2 === 0 }
+      localStorage.setItem('tarot.daily.v1', JSON.stringify({ '': days }))
+    })
     for (const [name, hash] of pages) {
       await page.goto(`${BASE_URL}${hash}`)
       await page.reload()
@@ -49,6 +68,14 @@ try {
         if (btn) {
           await btn.click()
           await page.waitForTimeout(900)
+        }
+      }
+      if (name === 'mycard') {
+        const input = await page.$('.birthday-input')
+        if (input) {
+          await page.fill('.birthday-input', '1990-07-23')
+          await page.click('.mycard-show')
+          await page.waitForTimeout(800)
         }
       }
       await page.screenshot({ path: `${outDir}${label}-${name}.png`, fullPage: true })

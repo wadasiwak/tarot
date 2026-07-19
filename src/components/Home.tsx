@@ -5,11 +5,12 @@ import { STRINGS } from '../lib/i18n'
 import { entryKey, loadDailyHistory } from '../lib/storage'
 import type { DrawableSpread } from '../lib/share'
 
-const MODES: { spread: DrawableSpread; emoji: string }[] = [
+const MODES: { spread: DrawableSpread; emoji: string; advanced?: boolean }[] = [
   { spread: 'three', emoji: '🃏' },
   { spread: 'relation', emoji: '💞' },
   { spread: 'yesno', emoji: '⚖️' },
   { spread: 'choice', emoji: '🔀' },
+  { spread: 'celtic', emoji: '🕯️', advanced: true },
 ]
 
 const MODE_DESC = {
@@ -18,12 +19,14 @@ const MODE_DESC = {
     relation: '我・對方・走向，看一段關係的兩端',
     yesno: '心裡想好一個是非題，抽一張看傾向',
     choice: '兩個選項各抽一張，比較兩邊能量',
+    celtic: '十張牌看一件事的全貌，適合醞釀已久的大哉問',
   },
   en: {
     three: 'Past, present, future — the arc of one thing',
     relation: 'You, them, and where it heads',
     yesno: 'Hold a yes-or-no question, draw one card',
     choice: 'One card for each option — compare the energy',
+    celtic: 'Ten cards for the full picture — made for the big questions',
   },
 } as const
 
@@ -68,6 +71,7 @@ export function Home() {
           <div className="mode-card" key={m.spread}>
             <h3>
               {m.emoji} {spreads[m.spread].name}
+              {m.advanced && <span className="adv-badge">{T.advBadge}</span>}
             </h3>
             <p className="mode-desc">{MODE_DESC[lang][m.spread]}</p>
             <div className="mode-actions">
@@ -91,6 +95,9 @@ export function Home() {
         </button>
         <button type="button" className="browse-link study-link" onClick={() => go({ name: 'study' })}>
           {T.studyLink}
+        </button>
+        <button type="button" className="browse-link mycard-link" onClick={() => go({ name: 'mycard' })}>
+          {T.myCardLink}
         </button>
         <button type="button" className="browse-link" onClick={() => go({ name: 'journal' })}>
           {T.journalLink}

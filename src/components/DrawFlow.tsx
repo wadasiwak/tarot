@@ -135,7 +135,7 @@ export function DrawFlow({ spread }: { spread: DrawableSpread }) {
       {step === 'reveal' && (
         <div className="reveal-stage">
           <p className="pick-hint">{allFlipped ? T.allFlipped : T.flipEach}</p>
-          <div className="reveal-cards">
+          <div className={`reveal-cards ${drawn.length > 5 ? 'many' : ''}`}>
             {drawn.map((c, i) => (
               <div className="reveal-slot" key={c.index}>
                 <p className="reveal-pos">{def.positions[i].title}</p>

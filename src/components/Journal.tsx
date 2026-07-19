@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { REGISTRY } from '../content/registry'
-import { getSpreads } from '../content/positions'
+import { getSpreads, SPREAD_SIZE, type SpreadId } from '../content/positions'
+import { computeStats } from '../lib/stats'
 import { loadDailyHistory, loadName, loadNames, renameDailyName, streakOf, type SavedReading } from '../lib/storage'
 import { todayStr } from '../lib/seed'
 import { useApp } from '../state'
@@ -36,6 +37,9 @@ export function Journal() {
   const [confirmDel, setConfirmDel] = useState<string | null>(null)
   const [noteDraft, setNoteDraft] = useState('')
   const [noteSaved, setNoteSaved] = useState(false)
+
+  // 抽牌統計（聚合每日史＋最近＋收藏；saved 增刪時重算）
+  const stats = useMemo(() => computeStats(), [saved]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const allHistory = loadDailyHistory()
   const history = allHistory[who.trim()] ?? {}
@@ -173,6 +177,70 @@ export function Journal() {
         <button type="button" className="btn primary" onClick={() => go({ name: 'daily' })}>
           {T.goDrawToday}
         </button>
+      </div>
+
+      <div className="stats-section">
+        <h3 className="saved-title">{T.statsTitle}</h3>
+        {stats.readings < 10 ? (
+          <p className="saved-empty stats-few">{T.statsFew}</p>
+        ) : (
+          <div className="stats-body">
+            <div className="study-stats stats-tiles">
+              <div className="stat-box">
+                <span className="stat-num">{stats.readings}</span>
+                <span className="stat-label">{T.statsReadings}</span>
+              </div>
+              <div className="stat-box">
+                <span className="stat-num">{stats.cardsTotal}</span>
+                <span className="stat-label">{T.statsCardsFlipped}</span>
+              </div>
+            </div>
+
+            <p className="stats-sub">{T.statsOriTitle}</p>
+            <div className="ori-bar" role="img" aria-label={`${T.upright} ${stats.upright} / ${T.reversed} ${stats.reversed}`}>
+              <span className="ori-bar-up" style={{ width: `${(stats.upright / Math.max(1, stats.cardsTotal)) * 100}%` }} />
+            </div>
+            <p className="ori-bar-legend">
+              <span className="ori-up-text">
+                {T.upright} {Math.round((stats.upright / Math.max(1, stats.cardsTotal)) * 100)}%（{stats.upright}）
+              </span>
+              <span className="ori-rev-text">
+                {T.reversed} {Math.round((stats.reversed / Math.max(1, stats.cardsTotal)) * 100)}%（{stats.reversed}）
+              </span>
+            </p>
+
+            <p className="stats-sub">{T.statsSpreadTitle}</p>
+            <div className="spread-chips">
+              {(Object.keys(SPREAD_SIZE) as SpreadId[])
+                .filter((s) => (stats.spreads[s] ?? 0) > 0)
+                .map((s) => (
+                  <span className="spread-chip" key={s}>
+                    {spreads[s].name} × {stats.spreads[s]}
+                  </span>
+                ))}
+            </div>
+
+            <p className="stats-sub">{T.statsTopTitle}</p>
+            <div className="top-cards">
+              {stats.top.map((t, rank) => (
+                <button
+                  type="button"
+                  className="top-card-row"
+                  key={t.index}
+                  onClick={() => go({ name: 'detail', id: REGISTRY[t.index].id, reversed: false })}
+                >
+                  <span className="top-rank">{rank + 1}</span>
+                  <span className="top-name">{lang === 'en' ? REGISTRY[t.index].nameEn : REGISTRY[t.index].name}</span>
+                  <span className="top-bar-track">
+                    <span className="top-bar" style={{ width: `${(t.count / stats.top[0].count) * 100}%` }} />
+                  </span>
+                  <span className="top-count">× {t.count}</span>
+                </button>
+              ))}
+            </div>
+            <p className="rename-note">{T.statsNote}</p>
+          </div>
+        )}
       </div>
 
       <div className="saved-list">
