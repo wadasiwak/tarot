@@ -35,13 +35,16 @@ try {
   const consoleErrors = []
   page.on('pageerror', (e) => consoleErrors.push(String(e)))
 
-  // 1. 首頁：每日一牌卡 + 三張模式卡 + 牌庫入口
+  // 1. 首頁：每日一牌卡 + 三張模式卡 + 牌庫入口；首訪（無任何紀錄）應顯示入門卡且可連到小學堂
   await page.goto(BASE_URL)
   await page.waitForSelector('.daily-card', { timeout: 5000 })
   const modeCards = await page.$$('.mode-card')
   if (modeCards.length !== 4) fail(`首頁應有 4 張模式卡，實得 ${modeCards.length}`)
   const homeLinks = await page.$$('.browse-link')
   if (homeLinks.length !== 3) fail(`首頁應有牌庫/小學堂/回顧三個入口，實得 ${homeLinks.length}`)
+  if (!(await page.$('.first-visit-card'))) fail('首訪（無任何紀錄）首頁應顯示入門卡')
+  await page.click('.first-visit-card')
+  await page.waitForSelector('.learn', { timeout: 3000 }).catch(() => fail('首訪入門卡應連到小學堂'))
 
   // 2. 每日一牌 seed 穩定：固定日期兩次開啟結果相同；壞日期 fallback 不炸
   await page.goto(`${BASE_URL}#daily/2026-01-15`)
@@ -261,10 +264,109 @@ try {
   const learnSections = await page.$$('.learn-section')
   if (learnSections.length < 6) fail(`小學堂應至少 6 段，實得 ${learnSections.length}`)
 
+  // 15b. 小學堂章節錨點：#learn/reversed 直開應捲動到正逆位章節
+  await page.goto(`${BASE_URL}#learn/reversed`)
+  await page.reload()
+  await page.waitForSelector('#learn-reversed', { timeout: 3000 })
+  await page.waitForTimeout(800)
+  if (!(await page.evaluate(() => window.scrollY > 0))) fail('#learn/reversed 應捲動到正逆位章節')
+
+  // 15c. 交叉連結：解讀頁正逆位徽章 → 小學堂正逆位；單牌詳情花色名 → 小學堂花色
+  await page.goto(`${BASE_URL}#r/yesno/13`)
+  await page.reload()
+  await page.waitForSelector('.reading', { timeout: 3000 })
+  await page.click('.ori-badge.clickable')
+  await page.waitForSelector('.learn', { timeout: 3000 })
+  if ((await page.evaluate(() => location.hash)) !== '#learn/reversed') fail('正逆位徽章應連到 #learn/reversed')
+  await page.goto(`${BASE_URL}#card/wands-03`)
+  await page.reload()
+  await page.waitForSelector('.card-detail', { timeout: 3000 })
+  await page.click('.detail-sub.as-link')
+  await page.waitForSelector('.learn', { timeout: 3000 })
+  if ((await page.evaluate(() => location.hash)) !== '#learn/suits') fail('花色名應連到 #learn/suits')
+
+  // 16. 收藏＋筆記：解讀頁收藏、寫筆記、reload 保留；筆記絕不進 URL
+  await page.goto(`${BASE_URL}#r/three/34r-7-61`)
+  await page.reload()
+  await page.waitForSelector('.reading', { timeout: 3000 })
+  await page.click('.save-reading')
+  await page.waitForSelector('.save-reading.saved', { timeout: 3000 })
+  await page.waitForSelector('.note-box .note-input', { timeout: 3000 })
+  await page.fill('.note-box .note-input', 'e2e 筆記：當時的想法')
+  await page.click('.save-note')
+  await page.reload()
+  await page.waitForSelector('.save-reading.saved', { timeout: 3000 }).catch(() => fail('收藏狀態 reload 後應保留'))
+  const noteAfterReload = await page.inputValue('.note-box .note-input')
+  if (noteAfterReload !== 'e2e 筆記：當時的想法') fail(`筆記 reload 後應保留，實得「${noteAfterReload}」`)
+  if ((await page.evaluate(() => location.href)).includes('筆記')) fail('筆記絕不能出現在 URL')
+
+  // 16b. 首頁最近清單：有紀錄後不顯示首訪卡；星號收藏/取消收藏
+  await page.goto(BASE_URL)
+  await page.reload()
+  await page.waitForSelector('.recent-item', { timeout: 3000 })
+  if (await page.$('.first-visit-card')) fail('已有紀錄仍顯示首訪入門卡')
+  await page.click('.recent-item .icon-btn.star')
+  await page.waitForSelector('.recent-item .icon-btn.star.on', { timeout: 3000 })
+
+  // 16c. Journal 收藏清單：兩筆、展開看筆記、點開回 Reading、兩段式刪除
+  await page.goto(`${BASE_URL}#journal`)
+  await page.reload()
+  await page.waitForSelector('.saved-list', { timeout: 3000 })
+  let savedItems = await page.$$('.saved-item')
+  if (savedItems.length !== 2) fail(`Journal 應有 2 筆收藏，實得 ${savedItems.length}`)
+  await (await savedItems[1].$('.saved-head')).click() // 第二筆＝較早收藏的三張牌陣
+  await page.waitForSelector('.saved-body', { timeout: 3000 })
+  const journalNote = await page.inputValue('.saved-body .note-input')
+  if (journalNote !== 'e2e 筆記：當時的想法') fail(`Journal 展開應看到筆記，實得「${journalNote}」`)
+  await page.click('.open-saved')
+  await page.waitForSelector('.reading', { timeout: 3000 })
+  if (!(await page.evaluate(() => location.hash)).startsWith('#r/three/34r-7-61')) fail('收藏清單點開應回到原解讀')
+  await page.goto(`${BASE_URL}#journal`)
+  await page.reload()
+  savedItems = await page.$$('.saved-item')
+  await (await savedItems[1].$('.saved-head')).click()
+  await page.click('.delete-saved')
+  await page.waitForSelector('.confirm-delete', { timeout: 3000 })
+  await page.click('.confirm-delete')
+  await page.waitForTimeout(200)
+  if ((await page.$$('.saved-item')).length !== 1) fail('確認刪除後收藏應剩 1 筆')
+
+  // 17. 最近清單單筆刪除
+  await page.goto(BASE_URL)
+  await page.reload()
+  await page.waitForSelector('.recent-item', { timeout: 3000 })
+  const recentBefore = (await page.$$('.recent-item')).length
+  await page.click('.recent-item .icon-btn:not(.star)')
+  await page.waitForTimeout(200)
+  const recentAfter = (await page.$$('.recent-item')).length
+  if (recentAfter !== recentBefore - 1) fail(`單筆刪除後應剩 ${recentBefore - 1} 筆，實得 ${recentAfter}`)
+
+  // 18. 暱稱改名：每日史整包搬到新名、舊名移除、chips 更新；未命名也可改名
+  await page.goto(`${BASE_URL}#journal`)
+  await page.reload()
+  await page.waitForSelector('.name-chips', { timeout: 3000 })
+  await page.click('.name-chips .btn.tab:has-text("小美")')
+  await page.click('.rename-btn')
+  await page.fill('.rename-input', '阿花')
+  await page.click('.rename-row .btn.primary')
+  await page.waitForTimeout(200)
+  const dailyStore = await page.evaluate(() => JSON.parse(localStorage.getItem('tarot.daily.v1')))
+  if (!dailyStore['阿花'] || !dailyStore['阿花']['2026-01-15']) fail('改名後每日史應搬到新名「阿花」')
+  if (dailyStore['小美']) fail('改名後舊名「小美」的史應移除')
+  if (!(await page.$('.name-chips .btn.tab:has-text("阿花")'))) fail('改名後 chips 應顯示新名')
+  await page.click('.name-chips .btn.tab:has-text("未命名")')
+  await page.click('.rename-btn')
+  await page.fill('.rename-input', '無名氏')
+  await page.click('.rename-row .btn.primary')
+  await page.waitForTimeout(200)
+  const dailyStore2 = await page.evaluate(() => JSON.parse(localStorage.getItem('tarot.daily.v1')))
+  if (dailyStore2[''] !== undefined) fail('未命名改名後空字串鍵應移除')
+  if (!dailyStore2['無名氏']) fail('未命名的史應搬到「無名氏」')
+
   if (consoleErrors.length) fail(`頁面有未捕捉錯誤：${consoleErrors.join(' | ')}`)
 
   await browser.close()
-  console.log('e2e OK：首頁、每日一牌seed、hash直開、非法hash防禦、抽牌流程、分享還原、AI複製、是非、手動輸入、GoatCounter隱私、免責、牌庫78格、最近紀錄全部通過')
+  console.log('e2e OK：首頁+首訪入門卡、每日一牌seed、hash直開、非法hash防禦、抽牌流程、分享還原、AI複製、是非、手動輸入、GoatCounter隱私、免責、牌庫78格、最近紀錄+單筆刪除、收藏+筆記、Journal收藏清單、暱稱改名、小學堂錨點與交叉連結全部通過')
 } finally {
   server.kill()
 }

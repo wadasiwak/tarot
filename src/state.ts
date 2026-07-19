@@ -2,8 +2,25 @@ import { create } from 'zustand'
 import type { DrawnCard } from './lib/draw'
 import { decodeCards, encodeCards, isDrawableSpread, type DrawableSpread } from './lib/share'
 import { REGISTRY } from './content/registry'
-import { loadRecent, addRecent, clearRecent, type RecentEntry } from './lib/storage'
+import {
+  loadRecent,
+  addRecent,
+  clearRecent,
+  removeRecentEntry,
+  entryKey,
+  loadSaved,
+  addSaved,
+  removeSaved,
+  updateSavedNote,
+  type RecentEntry,
+  type SavedReading,
+} from './lib/storage'
 import { loadLang, saveLang, type Lang } from './lib/i18n'
+
+// 小學堂章節錨點（#learn/<section>；順序與 Learn.tsx 的 SECTIONS 對齊）
+export const LEARN_SECTIONS = ['what', 'ask', 'suits', 'numbers', 'court', 'reversed', 'how'] as const
+export type LearnSection = (typeof LEARN_SECTIONS)[number]
+const isLearnSection = (s: string): s is LearnSection => (LEARN_SECTIONS as readonly string[]).includes(s)
 
 export type View =
   | { name: 'home' }
@@ -14,7 +31,7 @@ export type View =
   | { name: 'browse' } // 78 張牌庫
   | { name: 'detail'; id: string; reversed: boolean }
   | { name: 'journal' } // 每日一牌月曆回顧＋連續打卡
-  | { name: 'learn' } // 塔羅小學堂
+  | { name: 'learn'; section?: LearnSection } // 塔羅小學堂（可帶章節錨點 #learn/reversed）
 
 // URL hash 同步。⚠️ question 絕不進 URL（個資）。
 export function viewToHash(view: View): string {
@@ -36,7 +53,7 @@ export function viewToHash(view: View): string {
     case 'journal':
       return '#journal'
     case 'learn':
-      return '#learn'
+      return view.section ? `#learn/${view.section}` : '#learn'
   }
 }
 
@@ -62,6 +79,7 @@ export function hashToView(hash: string): View {
   if (head === 'cards' && a === undefined) return { name: 'browse' }
   if (head === 'journal' && a === undefined) return { name: 'journal' }
   if (head === 'learn' && a === undefined) return { name: 'learn' }
+  if (head === 'learn' && a && isLearnSection(a) && b === undefined) return { name: 'learn', section: a }
   if (head === 'card' && a && validId(a) && (b === undefined || b === 'r'))
     return { name: 'detail', id: a, reversed: b === 'r' }
   return { name: 'home' }
@@ -70,16 +88,22 @@ export function hashToView(hash: string): View {
 interface AppState {
   view: View
   recent: RecentEntry[]
+  saved: SavedReading[]
   lang: Lang
   go: (view: View) => void
   openReading: (spread: DrawableSpread, cards: DrawnCard[], question?: string) => void
   clearHistory: () => void
+  removeRecent: (key: string) => void
+  toggleSaved: (entry: Omit<SavedReading, 'id' | 'note'>) => void
+  deleteSaved: (id: string) => void
+  setSavedNote: (id: string, note: string) => void
   setLang: (lang: Lang) => void
 }
 
 export const useApp = create<AppState>((set) => ({
   view: hashToView(location.hash),
   recent: loadRecent(),
+  saved: loadSaved(),
   lang: loadLang(),
   go: (view) => {
     history.replaceState(null, '', viewToHash(view) || location.pathname)
@@ -93,6 +117,19 @@ export const useApp = create<AppState>((set) => ({
   clearHistory: () => {
     clearRecent()
     set({ recent: [] })
+  },
+  removeRecent: (key) => {
+    set({ recent: removeRecentEntry(key) })
+  },
+  toggleSaved: (entry) => {
+    const existing = loadSaved().find((e) => entryKey(e) === entryKey(entry))
+    set({ saved: existing ? removeSaved(existing.id) : addSaved(entry) })
+  },
+  deleteSaved: (id) => {
+    set({ saved: removeSaved(id) })
+  },
+  setSavedNote: (id, note) => {
+    set({ saved: updateSavedNote(id, note) })
   },
   setLang: (lang) => {
     saveLang(lang)

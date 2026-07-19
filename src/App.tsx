@@ -44,7 +44,7 @@ export default function App() {
       {view.name === 'browse' && <Browse />}
       {view.name === 'detail' && <CardDetail id={view.id} reversed={view.reversed} />}
       {view.name === 'journal' && <Journal />}
-      {view.name === 'learn' && <Learn />}
+      {view.name === 'learn' && <Learn section={view.section} />}
 
       <footer className="app-footer">
         <p>{T.footerLine1}</p>

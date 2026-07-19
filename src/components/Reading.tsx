@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { REGISTRY } from '../content/registry'
 import { getCard } from '../content'
 import { getSpreads } from '../content/positions'
@@ -6,6 +6,7 @@ import { VERDICT_LABELS, VERDICT_LABELS_EN } from '../content/types'
 import type { DrawnCard } from '../lib/draw'
 import { compareChoice } from '../lib/verdict'
 import { shareUrl, type DrawableSpread } from '../lib/share'
+import { entryKey } from '../lib/storage'
 import { useApp } from '../state'
 import { STRINGS } from '../lib/i18n'
 import { CardFace } from './CardFace'
@@ -20,6 +21,20 @@ export function Reading({ spread, cards, question }: { spread: DrawableSpread; c
   const def = getSpreads(lang)[spread]
   const labels = lang === 'en' ? VERDICT_LABELS_EN : VERDICT_LABELS
   const [copied, setCopied] = useState(false)
+
+  // 收藏與筆記（筆記只存本機，絕不進 URL / analytics）
+  const saved = useApp((s) => s.saved)
+  const toggleSaved = useApp((s) => s.toggleSaved)
+  const setSavedNote = useApp((s) => s.setSavedNote)
+  const key = entryKey({ spread, cards })
+  const savedEntry = saved.find((e) => entryKey(e) === key)
+  const [note, setNote] = useState(savedEntry?.note ?? '')
+  const [noteSaved, setNoteSaved] = useState(false)
+  useEffect(() => {
+    setNote(savedEntry?.note ?? '')
+    setNoteSaved(false)
+    // 換到另一筆解讀（或收藏/取消）時同步筆記草稿
+  }, [savedEntry?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const share = async () => {
     try {
@@ -74,7 +89,14 @@ export function Reading({ spread, cards, question }: { spread: DrawableSpread; c
                   <CardFace index={c.index} reversed={c.reversed} />
                   <p className="card-caption">
                     {lang === 'en' ? entry.nameEn : entry.name}
-                    <span className={`ori-badge ${c.reversed ? 'rev' : 'up'}`}>{c.reversed ? T.reversed : T.upright}</span>
+                    <button
+                      type="button"
+                      className={`ori-badge clickable ${c.reversed ? 'rev' : 'up'}`}
+                      title={T.oriLearnHint}
+                      onClick={() => go({ name: 'learn', section: 'reversed' })}
+                    >
+                      {c.reversed ? T.reversed : T.upright}
+                    </button>
                   </p>
                 </div>
                 {item ? (
@@ -119,6 +141,13 @@ export function Reading({ spread, cards, question }: { spread: DrawableSpread; c
         <button type="button" className="btn" onClick={share}>
           {copied ? T.linkCopied : T.shareReading}
         </button>
+        <button
+          type="button"
+          className={`btn save-reading ${savedEntry ? 'saved' : ''}`}
+          onClick={() => toggleSaved({ spread, cards, at: savedEntry?.at ?? new Date().toISOString().slice(0, 10), question })}
+        >
+          {savedEntry ? T.savedBadge : T.saveReading}
+        </button>
         <ShareCardButton
           title={def.name}
           subtitle={new Date().toISOString().slice(0, 10)}
@@ -130,6 +159,33 @@ export function Reading({ spread, cards, question }: { spread: DrawableSpread; c
           {T.drawAgain}
         </button>
       </div>
+
+      {savedEntry && (
+        <div className="note-box">
+          <textarea
+            className="note-input"
+            placeholder={T.notePlaceholder}
+            value={note}
+            maxLength={500}
+            rows={3}
+            onChange={(e) => {
+              setNote(e.target.value)
+              setNoteSaved(false)
+            }}
+          />
+          <button
+            type="button"
+            className="btn subtle save-note"
+            onClick={() => {
+              setSavedNote(savedEntry.id, note)
+              setNoteSaved(true)
+            }}
+          >
+            {noteSaved ? T.noteSaved : T.saveNote}
+          </button>
+        </div>
+      )}
+
       <p className="disclaimer">{T.disclaimerShort}</p>
     </div>
   )

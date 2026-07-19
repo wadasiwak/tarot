@@ -59,7 +59,18 @@ export function CardDetail({ id, reversed }: { id: string; reversed: boolean }) 
             {lang === 'en' ? entry.nameEn : entry.name}{' '}
             <span className="name-en">{lang === 'en' ? entry.name : entry.nameEn}</span>
           </h2>
-          <p className="detail-sub">{subtitle}</p>
+          {card && card.arcana !== 'major' ? (
+            <button
+              type="button"
+              className="detail-sub as-link"
+              title={T.aboutSuit}
+              onClick={() => go({ name: 'learn', section: 'suits' })}
+            >
+              {subtitle} →
+            </button>
+          ) : (
+            <p className="detail-sub">{subtitle}</p>
+          )}
           {card && <p className="scene">{card.scene}</p>}
           <div className="ori-toggle">
             <button
@@ -75,6 +86,13 @@ export function CardDetail({ id, reversed }: { id: string; reversed: boolean }) 
               onClick={() => go({ name: 'detail', id, reversed: true })}
             >
               {T.reversed}
+            </button>
+            <button
+              type="button"
+              className="btn subtle learn-reversed"
+              onClick={() => go({ name: 'learn', section: 'reversed' })}
+            >
+              {T.whatIsReversed}
             </button>
           </div>
         </div>

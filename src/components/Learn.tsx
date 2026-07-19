@@ -1,7 +1,9 @@
-import { useApp } from '../state'
+import { useEffect } from 'react'
+import { useApp, LEARN_SECTIONS, type LearnSection } from '../state'
 import { STRINGS, type Lang } from '../lib/i18n'
 
 // 塔羅小學堂：花色/數字/宮廷牌/正逆位的入門地圖（原創撰寫，雙語）
+// 章節順序與 state.ts 的 LEARN_SECTIONS 對齊（#learn/<id> 錨點定位用）
 const SECTIONS: Record<Lang, { title: string; body: string[] }[]> = {
   zh: [
     {
@@ -103,16 +105,26 @@ const SECTIONS: Record<Lang, { title: string; body: string[] }[]> = {
   ],
 }
 
-export function Learn() {
+export function Learn({ section }: { section?: LearnSection }) {
   const go = useApp((s) => s.go)
   const lang = useApp((s) => s.lang)
   const T = STRINGS[lang]
+
+  useEffect(() => {
+    if (!section) return
+    const scroll = () => document.getElementById(`learn-${section}`)?.scrollIntoView({ block: 'start' })
+    scroll()
+    // reload 直開時瀏覽器的 scroll restoration 會在 load 後把捲動蓋回去，補一次
+    const t = setTimeout(scroll, 300)
+    return () => clearTimeout(t)
+  }, [section])
+
   return (
     <div className="learn">
       <h2 className="reading-title">{T.learnTitle}</h2>
       <p className="reading-intro">{T.learnIntro}</p>
-      {SECTIONS[lang].map((s) => (
-        <section className="learn-section" key={s.title}>
+      {SECTIONS[lang].map((s, idx) => (
+        <section className="learn-section" id={`learn-${LEARN_SECTIONS[idx]}`} key={s.title}>
           <h3>{s.title}</h3>
           {s.body.map((p, i) => (
             <p key={i}>{p}</p>

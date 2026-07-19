@@ -110,27 +110,69 @@ body {
 }
 .browse-link:hover { color: var(--text); border-color: var(--violet); }
 
+/* 首訪入門卡 */
+.first-visit-card {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+  text-align: left;
+  background: linear-gradient(120deg, rgba(91, 72, 184, 0.25), var(--panel));
+  border: 1px solid var(--violet);
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin: 4px 0 12px;
+  cursor: pointer;
+  color: var(--text);
+}
+.first-visit-card:hover { border-color: var(--accent); }
+.fv-title { font-size: 16px; letter-spacing: 2px; color: var(--accent-bright); }
+.fv-sub { font-size: 13px; color: var(--text-dim); }
+
 /* 最近紀錄 */
 .recent { margin: 8px 0 24px; }
 .recent-head { display: flex; align-items: center; justify-content: space-between; }
 .recent-head h3 { font-size: 15px; color: var(--text-dim); letter-spacing: 2px; margin: 8px 0; }
 .recent-item {
-  width: 100%;
+  display: flex;
+  align-items: stretch;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin: 6px 0;
+}
+.recent-item:hover { border-color: var(--violet); }
+.recent-main {
+  flex: 1;
+  min-width: 0;
   display: flex;
   gap: 10px;
   align-items: baseline;
   flex-wrap: wrap;
   text-align: left;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  background: transparent;
+  border: none;
   padding: 10px 14px;
-  margin: 6px 0;
   cursor: pointer;
   color: var(--text);
   font-size: 13px;
+  font-family: inherit;
 }
-.recent-item:hover { border-color: var(--violet); }
+.recent-side { display: flex; align-items: center; gap: 2px; padding: 0 8px 0 0; }
+.icon-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 15px;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  line-height: 1;
+}
+.icon-btn:hover { color: var(--text); background: rgba(255, 255, 255, 0.06); }
+.icon-btn.star.on { color: var(--accent); }
+.icon-btn.star:hover { color: var(--accent-bright); }
 .recent-date { color: var(--text-dim); }
 .recent-spread { color: var(--accent-bright); }
 .recent-cards { color: var(--text); }
@@ -482,3 +524,79 @@ body {
 
 /* 語言切換 */
 .lang-toggle { margin-left: auto; padding: 5px 12px; font-size: 13px; }
+
+/* 收藏解讀＋筆記（筆記只存本機） */
+.save-reading.saved { border-color: var(--accent); color: var(--accent-bright); }
+.note-box { margin: 14px 0 0; }
+.note-input {
+  width: 100%;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-family: inherit;
+  line-height: 1.7;
+  resize: vertical;
+  margin: 6px 0 4px;
+  box-sizing: border-box;
+}
+.note-input:focus { outline: none; border-color: var(--violet); }
+
+.saved-list { margin: 26px 0 8px; }
+.saved-title { font-size: 15px; color: var(--text-dim); letter-spacing: 2px; margin: 8px 0; }
+.saved-empty { color: var(--text-dim); font-size: 13px; line-height: 1.7; }
+.saved-item {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin: 6px 0;
+}
+.saved-item.open { border-color: var(--violet); }
+.saved-head {
+  width: 100%;
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  text-align: left;
+  background: transparent;
+  border: none;
+  padding: 10px 14px;
+  cursor: pointer;
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+}
+.saved-caret { margin-left: auto; color: var(--text-dim); }
+.saved-body { padding: 0 14px 12px; }
+.saved-cards-row { display: flex; gap: 8px; margin: 8px 0; }
+.saved-card-thumb { width: 64px; }
+.saved-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 6px 0 0; }
+.btn.danger { border-color: var(--poor); color: var(--poor); }
+.btn.danger:hover { background: rgba(255, 138, 122, 0.12); }
+
+/* 暱稱改名 */
+.rename-box { margin: 4px 0 12px; }
+.rename-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.rename-from { color: var(--text-dim); font-size: 14px; white-space: nowrap; }
+.rename-input { flex: 1; min-width: 140px; width: auto; margin: 6px 0; }
+.rename-note { color: var(--text-dim); font-size: 12px; line-height: 1.7; margin: 4px 0 0; }
+
+/* 小學堂交叉連結 */
+.learn-section { scroll-margin-top: 12px; }
+.ori-badge.clickable { cursor: pointer; font-family: inherit; }
+.ori-badge.clickable:hover { text-decoration: underline; }
+.detail-sub.as-link {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+.detail-sub.as-link:hover { color: var(--accent-bright); }
+.learn-reversed { font-size: 12px; }

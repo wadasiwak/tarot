@@ -12,6 +12,11 @@ export interface RecentEntry {
 const KEY = 'tarot.recent.v1'
 const MAX = 12
 
+// 同一次抽牌的識別鍵（最近紀錄去重、收藏比對共用）
+export function entryKey(e: { spread: string; cards: DrawnCard[] }): string {
+  return `${e.spread}:${e.cards.map((c) => `${c.index}${c.reversed ? 'r' : ''}`).join('-')}`
+}
+
 export function loadRecent(): RecentEntry[] {
   try {
     const raw = localStorage.getItem(KEY)
@@ -24,8 +29,7 @@ export function loadRecent(): RecentEntry[] {
 }
 
 export function addRecent(entry: RecentEntry): RecentEntry[] {
-  const key = (e: RecentEntry) => `${e.spread}:${e.cards.map((c) => `${c.index}${c.reversed ? 'r' : ''}`).join('-')}`
-  const list = loadRecent().filter((e) => key(e) !== key(entry))
+  const list = loadRecent().filter((e) => entryKey(e) !== entryKey(entry))
   list.unshift(entry)
   const trimmed = list.slice(0, MAX)
   try {
@@ -34,6 +38,61 @@ export function addRecent(entry: RecentEntry): RecentEntry[] {
     // 隱私模式等寫入失敗就算了
   }
   return trimmed
+}
+
+export function removeRecentEntry(key: string): RecentEntry[] {
+  const list = loadRecent().filter((e) => entryKey(e) !== key)
+  try {
+    localStorage.setItem(KEY, JSON.stringify(list))
+  } catch {
+    // ignore
+  }
+  return list
+}
+
+// 永久收藏的解讀（含個人筆記；只存本機，絕不進 URL / analytics）
+export interface SavedReading {
+  id: string
+  spread: DrawableSpread | 'daily'
+  cards: DrawnCard[]
+  at: string // ISO 日期
+  question?: string
+  note?: string
+}
+
+const SAVED_KEY = 'tarot.saved.v1'
+
+export function loadSaved(): SavedReading[] {
+  try {
+    const raw = localStorage.getItem(SAVED_KEY)
+    if (!raw) return []
+    const list = JSON.parse(raw)
+    return Array.isArray(list) ? list : []
+  } catch {
+    return []
+  }
+}
+
+function persistSaved(list: SavedReading[]): SavedReading[] {
+  try {
+    localStorage.setItem(SAVED_KEY, JSON.stringify(list))
+  } catch {
+    // ignore
+  }
+  return list
+}
+
+export function addSaved(entry: Omit<SavedReading, 'id'>): SavedReading[] {
+  const id = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`
+  return persistSaved([{ id, ...entry }, ...loadSaved()])
+}
+
+export function removeSaved(id: string): SavedReading[] {
+  return persistSaved(loadSaved().filter((e) => e.id !== id))
+}
+
+export function updateSavedNote(id: string, note: string): SavedReading[] {
+  return persistSaved(loadSaved().map((e) => (e.id === id ? { ...e, note } : e)))
 }
 
 // 每日一牌歷史（月曆回顧＋連續打卡用；key 為暱稱，'' 代表未填名字）
@@ -124,6 +183,30 @@ export function saveName(name: string): void {
   } catch {
     // ignore
   }
+}
+
+// 暱稱改名：把舊名的每日史整包搬到新名（新名已存在則合併，衝突日以既有為準），
+// names 清單與當前暱稱同步。streak 只看日期集合，搬家後不會斷。
+export function renameDailyName(oldName: string, newName: string): void {
+  const from = oldName.trim() // '' 代表未命名
+  const to = newName.trim()
+  if (!to || from === to) return
+  try {
+    const all = loadDailyHistory()
+    const merged = { ...all[from], ...all[to] } // 後展開的既有紀錄優先
+    delete all[from]
+    if (Object.keys(merged).length > 0) all[to] = merged
+    localStorage.setItem(DAILY_KEY, JSON.stringify(all))
+  } catch {
+    // ignore
+  }
+  try {
+    const names = [to, ...loadNames().filter((n) => n !== from && n !== to)].slice(0, 8)
+    localStorage.setItem(NAMES_KEY, JSON.stringify(names))
+  } catch {
+    // ignore
+  }
+  if (loadName() === from) saveName(to)
 }
 
 export function clearRecent(): void {
