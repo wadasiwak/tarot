@@ -1,6 +1,7 @@
 // 最近的抽牌紀錄（localStorage，最多 12 筆，新的在前）
 import type { DrawnCard } from './draw'
 import type { DrawableSpread } from './share'
+import { newEntry, review, type Rating, type SrsEntry } from './srs'
 
 export interface RecentEntry {
   spread: DrawableSpread | 'daily'
@@ -207,6 +208,68 @@ export function renameDailyName(oldName: string, newName: string): void {
     // ignore
   }
   if (loadName() === from) saveName(to)
+}
+
+// 牌義學習進度（SRS 排程＋測驗統計；只存本機，絕不進 URL / analytics）
+export interface StudyState {
+  srs: Record<string, SrsEntry> // cardId → 排程
+  quiz: { answered: number; correct: number }
+}
+
+const STUDY_KEY = 'tarot.study.v1'
+
+export function loadStudy(): StudyState {
+  const empty: StudyState = { srs: {}, quiz: { answered: 0, correct: 0 } }
+  try {
+    const raw = localStorage.getItem(STUDY_KEY)
+    if (!raw) return empty
+    const obj = JSON.parse(raw)
+    if (!obj || typeof obj !== 'object') return empty
+    return {
+      srs: obj.srs && typeof obj.srs === 'object' ? obj.srs : {},
+      quiz: {
+        answered: typeof obj.quiz?.answered === 'number' ? obj.quiz.answered : 0,
+        correct: typeof obj.quiz?.correct === 'number' ? obj.quiz.correct : 0,
+      },
+    }
+  } catch {
+    return empty
+  }
+}
+
+function persistStudy(s: StudyState): StudyState {
+  try {
+    localStorage.setItem(STUDY_KEY, JSON.stringify(s))
+  } catch {
+    // 隱私模式等寫入失敗就算了
+  }
+  return s
+}
+
+// 記憶卡評分：沒排程的卡先建新卡再評
+export function rateStudy(id: string, rating: Rating, today: string): StudyState {
+  const s = loadStudy()
+  s.srs[id] = review(s.srs[id] ?? newEntry(today), rating, today)
+  return persistStudy(s)
+}
+
+// 單牌詳情「加入學習」：建一張今天到期的新卡（已在學習中則不動）
+export function addToStudy(id: string, today: string): StudyState {
+  const s = loadStudy()
+  if (!s.srs[id]) {
+    s.srs[id] = newEntry(today)
+    return persistStudy(s)
+  }
+  return s
+}
+
+// 測驗答題：累計統計；答錯的牌以 again 加重 SRS 權重（沒排程的卡直接進今日佇列）
+export function recordQuizAnswer(id: string, correct: boolean, today: string): StudyState {
+  const s = loadStudy()
+  s.quiz.answered += 1
+  if (correct) s.quiz.correct += 1
+  else s.srs[id] = review(s.srs[id] ?? newEntry(today), 'again', today)
+  return persistStudy(s)
 }
 
 export function clearRecent(): void {

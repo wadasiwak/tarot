@@ -89,6 +89,9 @@ export function Home() {
         <button type="button" className="browse-link" onClick={() => go({ name: 'learn' })}>
           {T.learnLink}
         </button>
+        <button type="button" className="browse-link study-link" onClick={() => go({ name: 'study' })}>
+          {T.studyLink}
+        </button>
         <button type="button" className="browse-link" onClick={() => go({ name: 'journal' })}>
           {T.journalLink}
         </button>

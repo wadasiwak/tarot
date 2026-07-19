@@ -1,8 +1,11 @@
+import { useEffect, useState } from 'react'
 import { REGISTRY, indexOfCard } from '../content/registry'
 import { getCard } from '../content'
 import { SUIT_NAMES, SUIT_NAMES_EN, VERDICT_LABELS, VERDICT_LABELS_EN, type CardReading } from '../content/types'
 import { useApp } from '../state'
 import { STRINGS, type Strings, type Lang } from '../lib/i18n'
+import { todayStr } from '../lib/seed'
+import { addToStudy, loadStudy } from '../lib/storage'
 import { CardFace } from './CardFace'
 
 function ReadingBlock({ r, T, lang }: { r: CardReading; T: Strings; lang: Lang }) {
@@ -38,6 +41,12 @@ export function CardDetail({ id, reversed }: { id: string; reversed: boolean }) 
   const index = indexOfCard(id)
   const entry = REGISTRY[index]
   const card = getCard(id, lang)
+
+  // 「加入學習」快捷：建一張今天到期的記憶卡（進度只存本機）
+  const [inStudy, setInStudy] = useState(false)
+  useEffect(() => {
+    setInStudy(!!loadStudy().srs[id])
+  }, [id])
 
   const subtitle = card
     ? card.arcana === 'major'
@@ -95,6 +104,22 @@ export function CardDetail({ id, reversed }: { id: string; reversed: boolean }) 
               {T.whatIsReversed}
             </button>
           </div>
+          {inStudy ? (
+            <button type="button" className="btn subtle add-study added" onClick={() => go({ name: 'study' })}>
+              {T.addedStudy}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn add-study"
+              onClick={() => {
+                addToStudy(id, todayStr())
+                setInStudy(true)
+              }}
+            >
+              {T.addStudy}
+            </button>
+          )}
         </div>
       </div>
       {card ? <ReadingBlock r={reversed ? card.reversed : card.upright} T={T} lang={lang} /> : <p className="pending-note">{T.pendingNote}</p>}

@@ -9,6 +9,7 @@ import { Browse } from './components/Browse'
 import { CardDetail } from './components/CardDetail'
 import { Journal } from './components/Journal'
 import { Learn } from './components/Learn'
+import { Study } from './components/Study'
 
 export default function App() {
   const view = useApp((s) => s.view)
@@ -45,6 +46,7 @@ export default function App() {
       {view.name === 'detail' && <CardDetail id={view.id} reversed={view.reversed} />}
       {view.name === 'journal' && <Journal />}
       {view.name === 'learn' && <Learn section={view.section} />}
+      {view.name === 'study' && <Study />}
 
       <footer className="app-footer">
         <p>{T.footerLine1}</p>

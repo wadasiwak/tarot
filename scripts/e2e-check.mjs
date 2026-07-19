@@ -41,7 +41,7 @@ try {
   const modeCards = await page.$$('.mode-card')
   if (modeCards.length !== 4) fail(`首頁應有 4 張模式卡，實得 ${modeCards.length}`)
   const homeLinks = await page.$$('.browse-link')
-  if (homeLinks.length !== 3) fail(`首頁應有牌庫/小學堂/回顧三個入口，實得 ${homeLinks.length}`)
+  if (homeLinks.length !== 4) fail(`首頁應有牌庫/小學堂/牌義學習/回顧四個入口，實得 ${homeLinks.length}`)
   if (!(await page.$('.first-visit-card'))) fail('首訪（無任何紀錄）首頁應顯示入門卡')
   await page.click('.first-visit-card')
   await page.waitForSelector('.learn', { timeout: 3000 }).catch(() => fail('首訪入門卡應連到小學堂'))
@@ -363,10 +363,85 @@ try {
   if (dailyStore2[''] !== undefined) fail('未命名改名後空字串鍵應移除')
   if (!dailyStore2['無名氏']) fail('未命名的史應搬到「無名氏」')
 
+  // 19. 牌義學習：#study 直開、進度儀表歸零、記憶卡翻卡評分
+  await page.goto(`${BASE_URL}#study`)
+  await page.reload()
+  await page.waitForSelector('.study', { timeout: 3000 })
+  const statNums = await page.$$eval('.stat-box .stat-num', (els) => els.map((e) => Number(e.textContent)))
+  if (statNums.length !== 4) fail(`學習儀表應 4 格，實得 ${statNums.length}`)
+  if (statNums[0] !== 0 || statNums[3] !== 78) fail(`初始儀表應 已學0/未學78，實得 ${statNums.join(',')}`)
+  await page.click('.start-cards')
+  await page.waitForSelector('.study-card', { timeout: 3000 })
+  const frontName = await page.textContent('.study-front .study-card-name')
+  if (!frontName.includes('愚者')) fail(`第一張新卡應為愚者（registry 順序），實得 ${frontName}`)
+  await page.click('.study-card') // 翻面
+  await page.waitForSelector('.study-back', { timeout: 3000 })
+  const kwRows = await page.$$('.study-back .study-kw')
+  if (kwRows.length !== 2) fail(`翻面應有正位＋逆位兩行關鍵字，實得 ${kwRows.length}`)
+  if (!(await page.$('.study-back .study-core'))) fail('翻面應有核心牌義摘要')
+  await page.click('.rate-good') // 記得 → 換下一張
+  await page.waitForSelector('.study-front', { timeout: 3000 })
+  const secondName = await page.textContent('.study-front .study-card-name')
+  if (!secondName.includes('魔術師')) fail(`第二張新卡應為魔術師，實得 ${secondName}`)
+  await page.click('.study-card')
+  await page.waitForSelector('.study-back', { timeout: 3000 })
+  await page.click('.rate-again') // 忘了 → 回佇列尾、SRS 記 lapse
+
+  // 19b. 進度持久化：reload 後儀表反映剛剛的評分、localStorage 有排程
+  await page.goto(`${BASE_URL}#study`)
+  await page.reload()
+  await page.waitForSelector('.study-stats', { timeout: 3000 })
+  const statAfter = await page.$$eval('.stat-box .stat-num', (els) => els.map((e) => Number(e.textContent)))
+  if (statAfter[0] !== 2) fail(`評 2 張後已學應為 2，實得 ${statAfter[0]}`)
+  if (statAfter[1] !== 1) fail(`「忘了」的那張應今日到期，實得 ${statAfter[1]}`)
+  const studyStore = await page.evaluate(() => JSON.parse(localStorage.getItem('tarot.study.v1')))
+  if (!studyStore.srs['major-00'] || studyStore.srs['major-00'].interval < 1) fail('愚者評「記得」後間隔應 ≥1 天')
+  if (studyStore.srs['major-01'].lapses !== 1) fail('魔術師評「忘了」後應記 1 次 lapse')
+
+  // 19c. 測驗：4 選項、10 題答完出成績、統計入庫、答錯加重 SRS
+  await page.click('.start-quiz')
+  await page.waitForSelector('.quiz-option', { timeout: 3000 })
+  for (let i = 0; i < 10; i++) {
+    const opts = await page.$$('.quiz-option')
+    if (opts.length !== 4) fail(`第 ${i + 1} 題應 4 個選項，實得 ${opts.length}`)
+    await opts[0].click()
+    await page.waitForSelector('.quiz-next', { timeout: 3000 })
+    await page.click('.quiz-next')
+    await page.waitForTimeout(100)
+  }
+  await page.waitForSelector('.quiz-done', { timeout: 3000 })
+  const studyStore2 = await page.evaluate(() => JSON.parse(localStorage.getItem('tarot.study.v1')))
+  if (studyStore2.quiz.answered !== 10) fail(`測驗統計應 10 題，實得 ${studyStore2.quiz.answered}`)
+  const wrongCount = 10 - studyStore2.quiz.correct
+  const srsCount = Object.keys(studyStore2.srs).length
+  if (srsCount < 2) fail(`答錯的牌應加入 SRS，排程數 ${srsCount}（答錯 ${wrongCount}）`)
+  await page.click('.quiz-done-actions .btn:not(.primary)') // 回牌義學習
+  await page.waitForSelector('.study-stats', { timeout: 3000 })
+
+  // 19d. 單牌詳情「加入學習」：入庫、變已在學習、點了跳 #study；學習資料不進 URL
+  const freeId = await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('tarot.study.v1'))
+    const ids = []
+    for (let i = 0; i <= 21; i++) ids.push(`major-${String(i).padStart(2, '0')}`)
+    for (const suit of ['wands', 'cups', 'swords', 'pentacles'])
+      for (let i = 1; i <= 14; i++) ids.push(`${suit}-${String(i).padStart(2, '0')}`)
+    return ids.find((id) => !s.srs[id])
+  })
+  await page.goto(`${BASE_URL}#card/${freeId}`)
+  await page.reload()
+  await page.waitForSelector('.add-study:not(.added)', { timeout: 3000 })
+  await page.click('.add-study')
+  await page.waitForSelector('.add-study.added', { timeout: 3000 })
+  const studyStore3 = await page.evaluate(() => JSON.parse(localStorage.getItem('tarot.study.v1')))
+  if (!studyStore3.srs[freeId]) fail(`詳情頁加入學習後 ${freeId} 應入排程`)
+  await page.click('.add-study.added')
+  await page.waitForSelector('.study', { timeout: 3000 })
+  if ((await page.evaluate(() => location.hash)) !== '#study') fail('學習頁 hash 應為 #study，不得夾帶學習資料')
+
   if (consoleErrors.length) fail(`頁面有未捕捉錯誤：${consoleErrors.join(' | ')}`)
 
   await browser.close()
-  console.log('e2e OK：首頁+首訪入門卡、每日一牌seed、hash直開、非法hash防禦、抽牌流程、分享還原、AI複製、是非、手動輸入、GoatCounter隱私、免責、牌庫78格、最近紀錄+單筆刪除、收藏+筆記、Journal收藏清單、暱稱改名、小學堂錨點與交叉連結全部通過')
+  console.log('e2e OK：首頁+首訪入門卡、每日一牌seed、hash直開、非法hash防禦、抽牌流程、分享還原、AI複製、是非、手動輸入、GoatCounter隱私、免責、牌庫78格、最近紀錄+單筆刪除、收藏+筆記、Journal收藏清單、暱稱改名、小學堂錨點與交叉連結、牌義學習(記憶卡/測驗/持久化/加入學習)全部通過')
 } finally {
   server.kill()
 }
