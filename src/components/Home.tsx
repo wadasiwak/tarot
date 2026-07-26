@@ -8,8 +8,10 @@ import type { DrawableSpread } from '../lib/share'
 const MODES: { spread: DrawableSpread; emoji: string; advanced?: boolean }[] = [
   { spread: 'three', emoji: '🃏' },
   { spread: 'relation', emoji: '💞' },
+  { spread: 'tree', emoji: '🌳' },
   { spread: 'yesno', emoji: '⚖️' },
   { spread: 'choice', emoji: '🔀' },
+  { spread: 'month', emoji: '🗓️' },
   { spread: 'celtic', emoji: '🕯️', advanced: true },
 ]
 
@@ -17,15 +19,19 @@ const MODE_DESC = {
   zh: {
     three: '過去・現在・未來，看一件事的來龍去脈',
     relation: '我・對方・走向，看一段關係的兩端',
+    tree: '六張牌把關係看成一棵樹——根基、養分、心結與走向',
     yesno: '心裡想好一個是非題，抽一張看傾向',
     choice: '兩個選項各抽一張，比較兩邊能量',
+    month: '月初抽一次，看這個月的主題、工作、感情與身心',
     celtic: '十張牌看一件事的全貌，適合醞釀已久的大哉問',
   },
   en: {
     three: 'Past, present, future — the arc of one thing',
     relation: 'You, them, and where it heads',
+    tree: 'Six cards read a relationship as a tree — roots, nourishment, knots and growth',
     yesno: 'Hold a yes-or-no question, draw one card',
     choice: 'One card for each option — compare the energy',
+    month: 'Draw at the start of the month — theme, work, love, body and mind',
     celtic: 'Ten cards for the full picture — made for the big questions',
   },
 } as const

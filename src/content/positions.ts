@@ -2,7 +2,7 @@
 // 位置框架是「牌陣的屬性」不是「牌的屬性」：渲染時當區段標頭說明，
 // 牌身內容（core / advice…）不重複這些話，避免 78×3 份模板位置文。
 
-export type SpreadId = 'daily' | 'three' | 'yesno' | 'choice' | 'relation' | 'celtic'
+export type SpreadId = 'daily' | 'three' | 'yesno' | 'choice' | 'relation' | 'tree' | 'month' | 'celtic'
 
 export const SPREAD_SIZE: Record<SpreadId, number> = {
   daily: 1,
@@ -10,6 +10,8 @@ export const SPREAD_SIZE: Record<SpreadId, number> = {
   yesno: 1,
   choice: 2,
   relation: 3,
+  tree: 6,
+  month: 5,
   celtic: 10,
 }
 
@@ -55,6 +57,41 @@ export const SPREADS: Record<SpreadId, { name: string; intro: string; positions:
       { title: '我的狀態', frame: '你在這段關係裡此刻的位置：帶著什麼能量、在意著什麼。' },
       { title: '對方的狀態', frame: '對方此刻的能量與心思——以牌面呈現的樣子，而非你希望的樣子。' },
       { title: '關係走向', frame: '若兩人維持現在的相處方式，這段關係自然的走向；牌末附上行動建議。' },
+    ],
+  },
+  tree: {
+    name: '關係之樹',
+    intro: '把一段關係看成一棵樹——兩個人的狀態、扎根的地方、正在澆的水、卡住的結，最後看它往哪裡長。感情、家人、朋友都適用。',
+    positions: [
+      { title: '我的狀態', frame: '你在這段關係裡此刻的樣子：帶著什麼心情站在樹下，最在意的是什麼。' },
+      { title: '對方的狀態', frame: '對方此刻的能量與心思——以牌面呈現的樣子，而非你希望或擔心的樣子。' },
+      { title: '關係的根基', frame: '這段關係扎根的地方：把你們連在一起的底層默契，或最初的緣分。' },
+      { title: '目前的養分', frame: '現在滋養這段關係的東西：讓它保持生機的互動與心意，值得繼續澆灌。' },
+      {
+        title: '彼此的心結',
+        frame: '兩人之間打結的地方：可能是誤會、期待落差，或都還沒說出口的事。',
+        bridge: '把這張牌讀成結卡住的位置——看見結在哪裡，其實就已經鬆開了一半。',
+      },
+      { title: '這段關係的走向', frame: '照現在的相處方式，這棵樹自然會長的方向；牌末附上這張牌給你的行動建議。' },
+    ],
+  },
+  month: {
+    name: '月度展望',
+    intro: '月初抽一次，替接下來的一個月畫一張溫柔的地圖：主題、工作學業、感情人際、身心狀態，最後收在一句提醒。',
+    positions: [
+      {
+        title: '本月主題',
+        frame: '這個月的主旋律：整體的能量基調，接下來的日子大致會繞著它展開。',
+        bridge: '把這張牌當作本月的關鍵字——遇到猶豫的時刻，回頭想想它。',
+      },
+      { title: '工作學業', frame: '這個月在工作或學業上的氣象：機會、進度，與值得留意的施力點。' },
+      { title: '感情人際', frame: '這個月的感情與人際流動：與重要的人之間，靠近或需要空間的節奏。' },
+      {
+        title: '身心狀態',
+        frame: '這個月的身心電量：能量的起伏，以及該把休息排進行事曆的訊號。',
+        bridge: '把這張牌讀成身心的天氣預報——提醒你何時該充電、何時可以衝刺；若真的不舒服，記得及早就醫。',
+      },
+      { title: '給你的提醒', frame: '這個月最想送給你的一句話：放在心上，月底再回頭看看。' },
     ],
   },
   celtic: {
@@ -150,6 +187,41 @@ export const SPREADS_EN: Record<SpreadId, { name: string; intro: string; positio
       { title: 'Where I Stand', frame: 'Your place in this relationship right now: the energy you carry, what you care about.' },
       { title: 'Where They Stand', frame: 'Their energy and state of mind — as the card shows it, not as you wish it to be.' },
       { title: 'Where It Heads', frame: 'Where the relationship naturally goes if things stay as they are; the card ends with its advice.' },
+    ],
+  },
+  tree: {
+    name: 'Relationship Tree',
+    intro: 'Read a relationship as a tree — where you both stand, its roots, what feeds it, where it knots, and where it grows. Works for love, family and friends.',
+    positions: [
+      { title: 'Where I Stand', frame: 'How you show up in this relationship right now: the mood you bring, what you care about most.' },
+      { title: 'Where They Stand', frame: 'Their energy and state of mind — as the card shows it, not as you hope or fear it to be.' },
+      { title: 'The Roots', frame: 'Where this relationship is rooted: the quiet understanding, or the first bond, that holds you together.' },
+      { title: 'What Feeds It', frame: 'What nourishes the relationship now: the exchanges and care that keep it alive — worth watering.' },
+      {
+        title: 'The Knot',
+        frame: 'Where things tangle between you: a misunderstanding, mismatched expectations, or something left unsaid.',
+        bridge: 'Read this card as where the knot sits — seeing it clearly is already half of untying it.',
+      },
+      { title: 'Where It Grows', frame: 'The direction the tree naturally grows if things stay as they are; the card ends with its advice for you.' },
+    ],
+  },
+  month: {
+    name: 'Monthly Outlook',
+    intro: 'Draw once at the start of the month for a gentle map of the weeks ahead: theme, work and study, love and people, body and mind, closing on one reminder.',
+    positions: [
+      {
+        title: 'Theme of the Month',
+        frame: "The month's keynote: the overall energy the coming weeks will tend to circle around.",
+        bridge: 'Keep this card as the keyword of your month — when in doubt, come back to it.',
+      },
+      { title: 'Work & Study', frame: 'The weather over work or study this month: openings, progress, and where effort pays off.' },
+      { title: 'Love & People', frame: 'How feelings and connections flow this month: the rhythm of closeness and space with the people who matter.' },
+      {
+        title: 'Body & Mind',
+        frame: "This month's energy levels: the ebb and flow, and the signals to schedule real rest.",
+        bridge: 'Read this card as a weather forecast for body and mind — when to recharge, when to sprint; and if something truly feels wrong, see a doctor early.',
+      },
+      { title: 'A Reminder for You', frame: 'One line to carry through the month — keep it close, and look back at it when the month ends.' },
     ],
   },
   celtic: {

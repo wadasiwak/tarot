@@ -11,7 +11,7 @@ import type { Lang } from './i18n'
 export type DrawableSpread = Exclude<SpreadId, 'daily'>
 
 export function isDrawableSpread(s: string): s is DrawableSpread {
-  return s === 'three' || s === 'yesno' || s === 'choice' || s === 'relation' || s === 'celtic'
+  return s === 'three' || s === 'yesno' || s === 'choice' || s === 'relation' || s === 'tree' || s === 'month' || s === 'celtic'
 }
 
 export function encodeCards(cards: DrawnCard[]): string {

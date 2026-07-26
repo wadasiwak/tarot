@@ -35,6 +35,8 @@ try {
     ['browse', '#cards'],
     ['detail', '#card/major-13/r'],
     ['reading-relation', '#r/relation/6-36r-45'],
+    ['reading-tree', '#r/tree/6-36r-45-12-70r-22'],
+    ['reading-month', '#r/month/3-17r-40-55-68'],
     ['reading-celtic', '#r/celtic/0-5r-13-22-30r-41-50r-60-70-77'],
     ['manual-celtic', '#manual/celtic'],
     ['mycard', '#mycard'],

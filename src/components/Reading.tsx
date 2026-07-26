@@ -130,6 +130,8 @@ export function Reading({ spread, cards, question }: { spread: DrawableSpread; c
                     <p className="core">{item.r.core}</p>
                     {(() => {
                       // 位置白話句：三張=過去/現在/建議；關係=我(present)/對方(other)/走向(建議)；
+                      // 關係之樹=我(present)/對方(other)/根基(past)/養分(love)/心結(位置銜接句)/走向(建議)；
+                      // 月度展望=主題(位置銜接句)/工作學業(career)/感情人際(love)/身心(位置銜接句)/提醒(建議)；
                       // 凱爾特十字=位置層級銜接句（positions.ts），最後的「結果」位再補上這張牌的行動建議
                       const bridge =
                         spread === 'celtic'
@@ -138,7 +140,11 @@ export function Reading({ spread, cards, question }: { spread: DrawableSpread; c
                             ? [item.r.past, item.r.present, item.r.advice][i]
                             : spread === 'relation'
                               ? [item.r.present, item.r.other, item.r.advice][i]
-                              : item.r.advice
+                              : spread === 'tree'
+                                ? [item.r.present, item.r.other, item.r.past, item.r.love, pos.bridge, item.r.advice][i]
+                                : spread === 'month'
+                                  ? [pos.bridge, item.r.career, item.r.love, pos.bridge, item.r.advice][i]
+                                  : item.r.advice
                       return (
                         <>
                           {bridge && <p className="advice">💡 {bridge}</p>}
