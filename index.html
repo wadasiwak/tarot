@@ -6,7 +6,10 @@
     <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
     <link rel="manifest" href="./manifest.webmanifest" />
     <meta name="theme-color" content="#131022" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="日常塔羅" />
     <meta name="description" content="線上塔羅抽牌與解讀：每日一牌、三張牌陣、是非二選一，支援正逆位；也可輸入實體抽到的牌立即看牌義解析。偉特塔羅 78 張全收錄。" />
     <meta name="copyright" content="© 2026 wadasiwak. All rights reserved." />
     <title>日常塔羅 ✦ 線上抽牌・偉特塔羅 78 張解讀</title>
@@ -26,11 +29,16 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
-      // 匿名流量統計（GoatCounter，無 cookie）。只回報 pathname——
-      // hash 含抽牌結果、query 可能含個資，一律不上報。
+      // 匿名流量統計（GoatCounter，無 cookie）。只回報 pathname＋畫面種類
+      // （如 daily、draw/three、r/celtic、cards、journal）——抽到的牌、日期、
+      // 單牌 id、query 一律不上報，看的是「哪些功能有人用」而不是誰抽到什麼。
       window.goatcounter = {
         path: function () {
-          return location.pathname
+          var parts = location.hash.replace(/^#/, '').split('/')
+          var head = parts[0] || ''
+          var withSpread = head === 'draw' || head === 'manual' || head === 'r' || head === 'learn'
+          var second = withSpread && parts[1] ? '/' + parts[1] : ''
+          return location.pathname + (head ? head + second : '')
         },
       }
     </script>

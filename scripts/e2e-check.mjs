@@ -45,8 +45,16 @@ try {
   if (!(await page.textContent('.mode-card:nth-child(7) .adv-badge')).includes('進階')) fail('凱爾特十字模式卡應標「進階・10 張」')
   const modeText = await page.textContent('.mode-cards')
   for (const m of ['關係之樹', '月度展望']) if (!modeText.includes(m)) fail(`首頁模式卡缺「${m}」`)
-  const homeLinks = await page.$$('.browse-link')
-  if (homeLinks.length !== 5) fail(`首頁應有牌庫/小學堂/牌義學習/我的牌/回顧五個入口，實得 ${homeLinks.length}`)
+  const homeLinks = await page.$$('.tool-chip')
+  if (homeLinks.length !== 5) fail(`首頁應有牌庫/小學堂/牌義學習/我的牌/回顧五個工具入口，實得 ${homeLinks.length}`)
+  if ((await page.$$('.home .btn')).length > 2) fail('首頁瘦身後不應再有一排「線上抽牌／輸入實體牌」按鈕')
+  // 「輸入實體牌」移到抽牌流程第一步
+  await page.click('.mode-card:nth-child(1)')
+  await page.waitForSelector('.draw-ask .manual-link', { timeout: 3000 }).catch(() => fail('抽牌第一步應有「改成輸入實體牌」連結'))
+  await page.click('.draw-ask .manual-link')
+  await page.waitForSelector('.manual-entry', { timeout: 3000 }).catch(() => fail('抽牌頁的輸入實體牌連結應進手動輸入'))
+  await page.goto(BASE_URL)
+  await page.reload()
   if (!(await page.$('.first-visit-card'))) fail('首訪（無任何紀錄）首頁應顯示入門卡')
   await page.click('.first-visit-card')
   await page.waitForSelector('.learn', { timeout: 3000 }).catch(() => fail('首訪入門卡應連到小學堂'))
@@ -221,9 +229,23 @@ try {
   if (!manualCaption.includes('愚者') || !manualCaption.includes('逆位')) fail(`手動輸入結果不對：${manualCaption}`)
 
   // 10. GoatCounter：path 只回報 pathname（帶 hash 的頁面上驗證）
-  const gcPath = await page.evaluate(() => window.goatcounter.path())
-  if (gcPath.includes('#') || gcPath.includes('?')) fail(`goatcounter path 洩漏 hash/query：${gcPath}`)
-  if (gcPath !== new URL(BASE_URL).pathname) fail(`goatcounter path 應為 pathname，實得 ${gcPath}`)
+  const basePath = new URL(BASE_URL).pathname
+  for (const [hash, expect] of [
+    ['#r/three/34r-7-61', `${basePath}r/three`],
+    ['#daily/2026-01-15', `${basePath}daily`],
+    ['#card/wands-03/r', `${basePath}card`],
+    ['#journal', `${basePath}journal`],
+    ['', basePath],
+  ]) {
+    await page.goto(`${BASE_URL}${hash}`)
+    await page.reload()
+    const gcPath = await page.evaluate(() => window.goatcounter.path())
+    if (gcPath.includes('#') || gcPath.includes('?')) fail(`goatcounter path 洩漏 hash/query：${gcPath}`)
+    if (gcPath !== expect) fail(`goatcounter path 在 ${hash || '首頁'} 應為 ${expect}，實得 ${gcPath}`)
+  }
+  await page.goto(`${BASE_URL}#r/yesno/13`)
+  await page.reload()
+  await page.waitForSelector('.reading', { timeout: 3000 })
 
   // 11. 免責聲明 + 版權
   const footer = await page.textContent('.app-footer')
@@ -696,7 +718,7 @@ try {
   await page.reload()
   await page.waitForSelector('.hero', { timeout: 3000 })
   if (await page.$('.back-bar')) fail('首頁不應有返回列')
-  await page.click('.mode-card:nth-child(1) .btn.primary')
+  await page.click('.mode-card:nth-child(1)')
   await page.waitForSelector('.draw-flow', { timeout: 3000 })
   if (!(await page.$('.back-bar'))) fail('非首頁畫面應有返回列')
   await page.goBack()
@@ -718,7 +740,7 @@ try {
   await page.waitForSelector('.card-detail', { timeout: 3000 })
   await page.click('.back-bar .back-btn')
   await page.waitForSelector('.hero', { timeout: 3000 }).catch(() => fail('直開詳情按返回應回首頁'))
-  await page.click('.mode-card:nth-child(1) .btn.primary')
+  await page.click('.mode-card:nth-child(1)')
   await page.waitForSelector('.draw-flow', { timeout: 3000 })
   await page.click('.back-bar .home-btn')
   await page.waitForSelector('.hero', { timeout: 3000 }).catch(() => fail('返回列的首頁鈕應回首頁'))
@@ -857,10 +879,76 @@ try {
   await page.waitForSelector('.saved-list', { timeout: 3000 })
   if (await page.$('.saved-item')) fail('壞的收藏紀錄應被丟棄')
 
+  // 32. 每日一牌筆記：翻今天的牌 → 寫筆記 → 回顧月曆點該日看到筆記；月曆未翻月份有空狀態
+  await page.evaluate(() => {
+    localStorage.removeItem('tarot.daily.v1')
+    localStorage.removeItem('tarot.name.v1')
+  })
+  await page.goto(`${BASE_URL}#daily`)
+  await page.reload()
+  await page.click('.daily-back .btn.primary')
+  await page.waitForSelector('.daily-note .note-input', { timeout: 3000 }).catch(() => fail('翻今天的牌後應有心情筆記框'))
+  await page.fill('.daily-note .note-input', '今天很平靜')
+  await page.click('.daily-note .save-note')
+  await page.waitForSelector('.daily-note .save-note:has-text("已儲存")', { timeout: 2000 })
+  await page.goto(`${BASE_URL}#journal`)
+  await page.reload()
+  await page.waitForSelector('.cal-cell.has-card', { timeout: 3000 })
+  if (!(await page.$('.cal-note-dot'))) fail('有筆記的日子月曆格應有小點')
+  await page.click('.cal-cell.has-card')
+  await page.waitForSelector('.cal-day-panel', { timeout: 2000 }).catch(() => fail('點月曆日應展開當日面板'))
+  if ((await page.inputValue('.cal-day-panel .note-input')) !== '今天很平靜') fail('當日面板應帶出剛寫的筆記')
+  await page.fill('.cal-day-panel .note-input', '改過的筆記')
+  await page.click('.cal-day-panel .save-note')
+  await page.waitForTimeout(150)
+  const dailyNoteStore = await page.evaluate(() => JSON.parse(localStorage.getItem('tarot.daily.v1')))
+  const todayRec = Object.values(dailyNoteStore[''])[0]
+  if (todayRec.note !== '改過的筆記') fail(`月曆面板改筆記應寫回每日史，實得 ${JSON.stringify(todayRec)}`)
+  await page.click('.cal-head .btn.subtle') // 上個月
+  await page.waitForSelector('.cal-empty', { timeout: 2000 }).catch(() => fail('沒紀錄的月份應顯示空狀態'))
+  if (page.url().includes('今天很平靜') || page.url().includes('note')) fail('筆記不應進 URL')
+
+  // 33. 首頁「清除」二步確認；牌圖 alt 跟語言走；PWA 檔案齊
+  await page.goto(BASE_URL)
+  await page.reload()
+  await page.waitForSelector('.recent', { timeout: 3000 })
+  await page.click('.recent-head .btn.subtle')
+  if (!(await page.$('.confirm-clear'))) fail('清除最近紀錄應先出現確認鈕')
+  if ((await page.$$('.recent-item')).length === 0) fail('按一次清除不應直接清空')
+  await page.click('.confirm-clear')
+  await page.waitForTimeout(150)
+  if (await page.$('.recent-item')) fail('確認後最近紀錄應清空')
+  await page.goto(`${BASE_URL}#card/wands-03/r`)
+  await page.reload()
+  await page.waitForSelector('.card-detail', { timeout: 3000 })
+  const altZh = await page.getAttribute('.detail-img .card-face', 'alt')
+  if (!altZh.includes('權杖三') || !altZh.includes('逆位')) fail(`中文 alt 應含牌名與逆位，實得 ${altZh}`)
+  const imgW = await page.getAttribute('.detail-img .card-face', 'width')
+  if (!imgW) fail('牌圖應帶 width/height 屬性避免版面跳動')
+  await page.click('.lang-toggle')
+  await page.waitForTimeout(200)
+  const altEn = await page.getAttribute('.detail-img .card-face', 'alt')
+  if (!altEn.includes('Three of Wands') || !altEn.includes('reversed')) fail(`英文 alt 應為英文牌名，實得 ${altEn}`)
+  await page.click('.lang-toggle')
+  for (const f of ['manifest.webmanifest', 'sw.js', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png']) {
+    const res = await fetch(`${BASE_URL}${f}`)
+    if (!res.ok) fail(`PWA 檔案 ${f} 應存在，實得 ${res.status}`)
+  }
+  const manifest = await (await fetch(`${BASE_URL}manifest.webmanifest`)).json()
+  if (!manifest.icons.some((i) => i.purpose === 'maskable')) fail('manifest 應有 maskable icon')
+  const swText = await (await fetch(`${BASE_URL}sw.js`)).text()
+  if (!swText.includes('ignoreVary') || !swText.includes('./index.html')) fail('sw.js 應 precache app shell 並 ignoreVary')
+  if (swText.includes('cards/major-00.jpg')) fail('sw.js 不應在安裝時 precache 78 張牌圖')
+  const swReg = await page.evaluate(async () => {
+    const regs = await navigator.serviceWorker.getRegistrations()
+    return regs.length
+  })
+  if (swReg < 1) fail('production build 應註冊 service worker')
+
   if (consoleErrors.length) fail(`頁面有未捕捉錯誤：${consoleErrors.join(' | ')}`)
 
   await browser.close()
-  console.log('e2e OK：首頁+首訪入門卡、每日一牌seed、hash直開、非法hash防禦、抽牌流程、分享還原、AI複製、是非、手動輸入、GoatCounter隱私、免責、牌庫78格、最近紀錄+單筆刪除、收藏+筆記、Journal收藏清單、暱稱改名、小學堂錨點與交叉連結、牌義學習(記憶卡/測驗/持久化/加入學習)、凱爾特十字(線上抽/手動/分享還原/十字總覽)、我的牌(生日牌/年度牌/本機保存)、抽牌統計(門檻/Top5/去重)、關係之樹(線上抽6張/分享還原/收藏/手動6格)、月度展望(線上抽5張/位置白話句/收藏/hash直開)、返回鍵/返回列、中途續抽、備份還原、壞連結提示、二選一、streak從昨天起算、壞資料防禦全部通過')
+  console.log('e2e OK：首頁+首訪入門卡、每日一牌seed、hash直開、非法hash防禦、抽牌流程、分享還原、AI複製、是非、手動輸入、GoatCounter隱私、免責、牌庫78格、最近紀錄+單筆刪除、收藏+筆記、Journal收藏清單、暱稱改名、小學堂錨點與交叉連結、牌義學習(記憶卡/測驗/持久化/加入學習)、凱爾特十字(線上抽/手動/分享還原/十字總覽)、我的牌(生日牌/年度牌/本機保存)、抽牌統計(門檻/Top5/去重)、關係之樹(線上抽6張/分享還原/收藏/手動6格)、月度展望(線上抽5張/位置白話句/收藏/hash直開)、返回鍵/返回列、中途續抽、備份還原、壞連結提示、二選一、streak從昨天起算、壞資料防禦、每日筆記+月曆面板、清除二步確認、alt雙語、PWA(manifest/sw/icon)全部通過')
 } finally {
   server.kill()
 }

@@ -20,7 +20,7 @@ function readRaw(key: string): unknown {
     const raw = localStorage.getItem(key)
     if (raw === null) return undefined
     // name / birthday / lang 是純字串，其餘是 JSON
-    if (key === STORAGE_KEYS.name || key === STORAGE_KEYS.birthday || key === LANG_KEY) return raw
+    if (key === STORAGE_KEYS.name || key === STORAGE_KEYS.birthday || key === STORAGE_KEYS.count || key === LANG_KEY) return raw
     return JSON.parse(raw)
   } catch {
     return undefined
@@ -82,6 +82,10 @@ function mergeInto(data: Record<string, unknown>): void {
     mine.quiz.answered += theirs.quiz?.answered ?? 0
     mine.quiz.correct += theirs.quiz?.correct ?? 0
     write(K.study, mine)
+  }
+  if (typeof data[K.count] === 'string' || typeof data[K.count] === 'number') {
+    const mine = Number(localStorage.getItem(K.count)) || 0
+    write(K.count, String(Math.max(mine, Number(data[K.count]) || 0)))
   }
   for (const k of [K.name, K.birthday, LANG_KEY]) {
     if (typeof data[k] === 'string' && !localStorage.getItem(k)) write(k, data[k])

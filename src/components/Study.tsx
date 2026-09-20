@@ -114,7 +114,15 @@ function FlashcardSession({ onExit }: { onExit: () => void }) {
         className={`study-card ${flipped ? 'flipped' : ''}`}
         onClick={() => setFlipped((f) => !f)}
         role="button"
+        tabIndex={0}
         aria-label={T.flipHint}
+        onKeyDown={(e) => {
+          if (e.target !== e.currentTarget) return
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            setFlipped((f) => !f)
+          }
+        }}
       >
         {!flipped ? (
           <div className="study-front">

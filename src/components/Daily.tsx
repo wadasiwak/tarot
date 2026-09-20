@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { REGISTRY } from '../content/registry'
 import { getCard } from '../content'
 import { dailyDraw, todayStr } from '../lib/seed'
-import { loadName, saveName, loadNames, rememberName, recordDaily, streakOf } from '../lib/storage'
+import { loadName, saveName, loadNames, rememberName, recordDaily, streakOf, loadDailyHistory, setDailyNote, lastWriteFailed } from '../lib/storage'
 import { useApp } from '../state'
 import { STRINGS } from '../lib/i18n'
 import { CardFace, CardBack } from './CardFace'
@@ -29,6 +29,11 @@ export function Daily({ date }: { date?: string }) {
 
   const isToday = day === todayStr()
 
+  // 當天心情筆記（存在每日史那筆紀錄上；只存本機）
+  const [note, setNote] = useState('')
+  const [noteSaved, setNoteSaved] = useState(false)
+  const recorded = !!loadDailyHistory()[name.trim()]?.[day]
+
   // 只有「今天」的翻牌才寫進每日史／打卡：回顧過去某天的牌不能回填連續天數
   const flip = () => {
     saveName(name)
@@ -37,6 +42,8 @@ export function Daily({ date }: { date?: string }) {
       recordDaily(name, day, { index: drawn.index, reversed: drawn.reversed })
       setStreak(streakOf(name, day))
     }
+    setNote(loadDailyHistory()[name.trim()]?.[day]?.note ?? '')
+    setNoteSaved(false)
     setFlipped(true)
   }
 
@@ -105,6 +112,31 @@ export function Daily({ date }: { date?: string }) {
                     {T.fullMeaning}
                   </button>
                 </div>
+                {recorded && (
+                  <div className="note-box daily-note">
+                    <textarea
+                      className="note-input"
+                      placeholder={T.dailyNoteHint}
+                      value={note}
+                      maxLength={500}
+                      rows={2}
+                      onChange={(e) => {
+                        setNote(e.target.value)
+                        setNoteSaved(false)
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="btn subtle save-note"
+                      onClick={() => {
+                        setDailyNote(name, day, note)
+                        setNoteSaved(true)
+                      }}
+                    >
+                      {noteSaved ? (lastWriteFailed() ? T.saveFailed : T.noteSaved) : T.saveNote}
+                    </button>
+                  </div>
+                )}
                 <div className="reading-actions">
                   <button type="button" className="btn subtle" onClick={() => go({ name: 'journal' })}>
                     {T.journalShort}

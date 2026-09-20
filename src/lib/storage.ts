@@ -126,6 +126,7 @@ export function updateSavedNote(id: string, note: string): SavedReading[] {
 export interface DailyRecord {
   index: number
   reversed: boolean
+  note?: string // 當天的心情筆記（只存本機）
 }
 
 const DAILY_KEY = 'tarot.daily.v1'
@@ -142,7 +143,10 @@ export function loadDailyHistory(): DailyHistory {
       if (!days || typeof days !== 'object') continue
       const clean: Record<string, DailyRecord> = {}
       for (const [date, rec] of Object.entries(days as Record<string, unknown>)) {
-        if (isDate(date) && isDrawnCard(rec)) clean[date] = { index: rec.index, reversed: rec.reversed }
+        if (isDate(date) && isDrawnCard(rec)) {
+          const note = (rec as { note?: unknown }).note
+          clean[date] = { index: rec.index, reversed: rec.reversed, ...(typeof note === 'string' && note ? { note } : {}) }
+        }
       }
       out[name] = clean
     }
@@ -156,11 +160,39 @@ export function recordDaily(name: string, date: string, rec: DailyRecord): void 
   try {
     const all = loadDailyHistory()
     const who = name.trim()
-    all[who] = { ...all[who], [date]: rec }
+    const isNew = !all[who]?.[date]
+    all[who] = { ...all[who], [date]: { ...rec, ...(all[who]?.[date]?.note ? { note: all[who][date].note } : {}) } }
     writeLS(DAILY_KEY, JSON.stringify(all))
+    if (isNew) bumpReadingCount()
   } catch {
     // ignore
   }
+}
+
+// 每日一牌的心情筆記：只在該日已有紀錄時寫入
+export function setDailyNote(name: string, date: string, note: string): boolean {
+  const all = loadDailyHistory()
+  const who = name.trim()
+  const rec = all[who]?.[date]
+  if (!rec) return false
+  const trimmed = note.trim()
+  if (trimmed) rec.note = trimmed
+  else delete rec.note
+  return writeLS(DAILY_KEY, JSON.stringify(all))
+}
+
+// 累計抽牌次數（單調遞增計數器）：最近紀錄只留 12 筆，統計不能靠它算「累計」
+const COUNT_KEY = 'tarot.count.v1'
+export function loadReadingCount(): number {
+  try {
+    const n = Number(localStorage.getItem(COUNT_KEY))
+    return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0
+  } catch {
+    return 0
+  }
+}
+export function bumpReadingCount(): void {
+  writeLS(COUNT_KEY, String(loadReadingCount() + 1))
 }
 
 // 連續打卡天數：從 date 往回數連續有紀錄的天數。
@@ -331,6 +363,7 @@ export const STORAGE_KEYS = {
   name: NAME_KEY,
   study: STUDY_KEY,
   birthday: BIRTHDAY_KEY,
+  count: COUNT_KEY,
 } as const
 
 export function clearRecent(): void {

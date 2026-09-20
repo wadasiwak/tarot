@@ -30,6 +30,7 @@ function cryptoInt(max: number): number {
 // 儀式感抽牌流程：問題（選填）→ 洗牌 → 切三刀 → 弧形扇排親手點選 → 逐張翻牌 → 結果頁
 export function DrawFlow({ spread }: { spread: DrawableSpread }) {
   const openReading = useApp((s) => s.openReading)
+  const go = useApp((s) => s.go)
   const lang = useApp((s) => s.lang)
   const T = STRINGS[lang]
   const def = getSpreads(lang)[spread]
@@ -105,6 +106,9 @@ export function DrawFlow({ spread }: { spread: DrawableSpread }) {
           <button type="button" className="btn primary big" onClick={() => setStep('shuffle')}>
             {T.startShuffle}
           </button>
+          <button type="button" className="btn subtle manual-link" onClick={() => go({ name: 'manual', spread })}>
+            {T.manualInDraw}
+          </button>
         </div>
       )}
 
@@ -146,7 +150,7 @@ export function DrawFlow({ spread }: { spread: DrawableSpread }) {
                 style={{ transform: `translateX(-50%) rotate(${fanAngle(i)}deg)`, zIndex: i }}
                 key={i}
               >
-                <CardBack className="fan-card" onClick={() => pick(i)} />
+                <CardBack className="fan-card" onClick={() => pick(i)} label={T.fanCardLabel(i + 1)} />
               </div>
             ))}
           </div>
@@ -160,7 +164,19 @@ export function DrawFlow({ spread }: { spread: DrawableSpread }) {
             {drawn.map((c, i) => (
               <div className="reveal-slot" key={c.index}>
                 <p className="reveal-pos">{def.positions[i].title}</p>
-                <div className={`flip-box ${flipped[i] ? 'flipped' : ''}`} onClick={() => flip(i)}>
+                <div
+                  className={`flip-box ${flipped[i] ? 'flipped' : ''}`}
+                  role="button"
+                  tabIndex={flipped[i] ? -1 : 0}
+                  aria-label={T.flipCardLabel(def.positions[i].title)}
+                  onClick={() => flip(i)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      flip(i)
+                    }
+                  }}
+                >
                   <div className="flip-inner">
                     <div className="flip-front">
                       <CardBack />

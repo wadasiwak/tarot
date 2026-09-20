@@ -3,7 +3,7 @@ import { backupFilename, exportBackup, importBackup } from '../lib/backup'
 import { REGISTRY } from '../content/registry'
 import { getSpreads, SPREAD_SIZE, type SpreadId } from '../content/positions'
 import { computeStats } from '../lib/stats'
-import { lastWriteFailed, loadDailyHistory, loadName, loadNames, renameDailyName, streakOf, type SavedReading } from '../lib/storage'
+import { lastWriteFailed, loadDailyHistory, loadName, loadNames, renameDailyName, setDailyNote, streakOf, type SavedReading } from '../lib/storage'
 import { todayStr } from '../lib/seed'
 import { useApp } from '../state'
 import { STRINGS } from '../lib/i18n'
@@ -28,6 +28,12 @@ export function Journal() {
     const d = new Date()
     return { y: d.getFullYear(), m: d.getMonth() }
   })
+
+  // 月曆點某天：下方展開該日牌＋心情筆記
+  const [selectedDay, setSelectedDay] = useState<string | null>(null)
+  const [dayNote, setDayNote] = useState('')
+  const [dayNoteSaved, setDayNoteSaved] = useState(false)
+  const [tick, setTick] = useState(0) // 存筆記後重讀每日史
 
   // 暱稱改名
   const [renaming, setRenaming] = useState(false)
@@ -75,7 +81,7 @@ export function Journal() {
   // 抽牌統計（聚合每日史＋最近＋收藏；saved 增刪時重算）
   const stats = useMemo(() => computeStats(), [saved]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const allHistory = loadDailyHistory()
+  const allHistory = useMemo(() => loadDailyHistory(), [tick, who]) // eslint-disable-line react-hooks/exhaustive-deps
   const history = allHistory[who.trim()] ?? {}
   const names = ['', ...loadNames().filter(Boolean)]
   const streak = streakOf(who, today)
@@ -192,20 +198,74 @@ export function Journal() {
               type="button"
               className={`cal-cell ${rec ? 'has-card' : ''} ${isToday ? 'today' : ''}`}
               key={date}
-              onClick={() => rec && go({ name: 'detail', id: REGISTRY[rec.index].id, reversed: rec.reversed })}
+              onClick={() => {
+                if (!rec) return
+                setSelectedDay(selectedDay === date ? null : date)
+                setDayNote(rec.note ?? '')
+                setDayNoteSaved(false)
+              }}
               disabled={!rec}
+              aria-expanded={selectedDay === date}
             >
               <span className="cal-day">{i + 1}</span>
               {rec && (
                 <span className="cal-card-name">
                   {lang === 'en' ? REGISTRY[rec.index].nameEn : REGISTRY[rec.index].name}
-                  {rec.reversed ? (lang === 'en' ? ' ↓' : '·逆') : ''}
+                  {rec.reversed ? T.revShort : ''}
                 </span>
               )}
+              {rec?.note && <span className="cal-note-dot" aria-hidden="true" />}
             </button>
           )
         })}
       </div>
+      {!Object.keys(history).some((d) => d.startsWith(prefix)) && <p className="saved-empty cal-empty">{T.calEmpty}</p>}
+
+      {selectedDay && history[selectedDay] && (
+        <div className="cal-day-panel">
+          <div className="cal-day-thumb">
+            <CardFace index={history[selectedDay].index} reversed={history[selectedDay].reversed} />
+          </div>
+          <div className="cal-day-body">
+            <p className="card-caption small">
+              <span className="recent-date">{selectedDay}</span>
+              {lang === 'en' ? REGISTRY[history[selectedDay].index].nameEn : REGISTRY[history[selectedDay].index].name}
+              <span className={`ori-badge ${history[selectedDay].reversed ? 'rev' : 'up'}`}>{history[selectedDay].reversed ? T.reversed : T.upright}</span>
+            </p>
+            <textarea
+              className="note-input"
+              placeholder={T.dailyNoteHint}
+              value={dayNote}
+              maxLength={500}
+              rows={2}
+              onChange={(ev) => {
+                setDayNote(ev.target.value)
+                setDayNoteSaved(false)
+              }}
+            />
+            <div className="saved-actions">
+              <button
+                type="button"
+                className="btn subtle save-note"
+                onClick={() => {
+                  setDailyNote(who, selectedDay, dayNote)
+                  setDayNoteSaved(true)
+                  setTick((t) => t + 1)
+                }}
+              >
+                {dayNoteSaved ? (lastWriteFailed() ? T.saveFailed : T.noteSaved) : T.saveNote}
+              </button>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => go({ name: 'detail', id: REGISTRY[history[selectedDay].index].id, reversed: history[selectedDay].reversed })}
+              >
+                {T.fullMeaning}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="reading-actions">
         <button type="button" className="btn primary" onClick={() => go({ name: 'daily' })}>

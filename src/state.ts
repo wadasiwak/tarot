@@ -12,6 +12,7 @@ import {
   loadSaved,
   addSaved,
   removeSaved,
+  bumpReadingCount,
   updateSavedNote,
   type RecentEntry,
   type SavedReading,
@@ -160,6 +161,7 @@ export const useApp = create<AppState>((set) => ({
   },
   openReading: (spread, cards, question) => {
     const recent = addRecent({ spread, cards, at: todayStr(), question })
+    bumpReadingCount()
     navigate(`#r/${spread}/${encodeCards(cards)}`)
     set({ view: { name: 'reading', spread, cards, question }, recent })
     window.scrollTo(0, 0)

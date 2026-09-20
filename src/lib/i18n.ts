@@ -213,6 +213,21 @@ export const STRINGS = {
     // 續抽
     resumedNote: '已從上次中斷的地方接續。',
     dailyPastNote: '這是回顧過去某天的牌，不會計入打卡。',
+    // 首頁分區與工具列
+    spreadsTitle: '牌陣',
+    toolBrowse: '牌庫',
+    toolLearn: '小學堂',
+    toolStudy: '牌義學習',
+    toolMyCard: '我的牌',
+    toolJournal: '回顧',
+    manualInDraw: '✋ 現實中已經抽了牌？改成輸入實體牌 →',
+    clearConfirm: '確定清除全部最近紀錄？',
+    calEmpty: '這個月還沒翻過牌。',
+    dailyNoteHint: '今天的心情或這張牌讓你想到什麼？',
+    fanCardLabel: (n: number) => `第 ${n} 張牌背`,
+    cardBackLabel: '牌背',
+    flipCardLabel: (pos: string) => `翻開「${pos}」的牌`,
+    imgFallback: '牌圖載入失敗',
   },
   en: {
     siteTitle: 'Everyday Tarot',
@@ -406,6 +421,21 @@ export const STRINGS = {
     // Resume
     resumedNote: 'Picked up where you left off.',
     dailyPastNote: 'Looking back at a past day — this does not count toward your streak.',
+    // Home sections & tools
+    spreadsTitle: 'Spreads',
+    toolBrowse: 'Library',
+    toolLearn: 'Basics',
+    toolStudy: 'Study',
+    toolMyCard: 'My card',
+    toolJournal: 'Journal',
+    manualInDraw: '✋ Already drew physical cards? Enter them instead →',
+    clearConfirm: 'Clear all recent readings?',
+    calEmpty: 'No cards flipped this month yet.',
+    dailyNoteHint: 'How do you feel today? What does this card bring to mind?',
+    fanCardLabel: (n: number) => `Card back ${n}`,
+    cardBackLabel: 'Card back',
+    flipCardLabel: (pos: string) => `Flip the “${pos}” card`,
+    imgFallback: 'Card image failed to load',
   },
 } as const
 

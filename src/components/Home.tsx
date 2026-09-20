@@ -1,11 +1,12 @@
+import { useState } from 'react'
 import { REGISTRY } from '../content/registry'
 import { getSpreads } from '../content/positions'
-import { useApp } from '../state'
-import { STRINGS } from '../lib/i18n'
+import { useApp, type HomeNotice, type View } from '../state'
+import { STRINGS, type Strings } from '../lib/i18n'
 import { entryKey, loadDailyHistory } from '../lib/storage'
 import type { DrawableSpread } from '../lib/share'
-import type { HomeNotice } from '../state'
 
+// 牌陣卡：整張可點＝線上抽牌；「輸入實體牌」移到抽牌流程第一步，首頁少一半按鈕
 const MODES: { spread: DrawableSpread; emoji: string; advanced?: boolean }[] = [
   { spread: 'three', emoji: '🃏' },
   { spread: 'relation', emoji: '💞' },
@@ -16,7 +17,7 @@ const MODES: { spread: DrawableSpread; emoji: string; advanced?: boolean }[] = [
   { spread: 'celtic', emoji: '🕯️', advanced: true },
 ]
 
-const MODE_DESC = {
+export const MODE_DESC = {
   zh: {
     three: '過去・現在・未來，看一件事的來龍去脈',
     relation: '我・對方・走向，看一段關係的兩端',
@@ -37,6 +38,15 @@ const MODE_DESC = {
   },
 } as const
 
+// 工具列：牌庫／小學堂／牌義學習／我的牌／回顧，一列 chips 取代五個同樣的虛線大框
+const TOOLS: { view: View; emoji: string; label: keyof Strings; cls: string }[] = [
+  { view: { name: 'browse' }, emoji: '📖', label: 'toolBrowse', cls: 'browse' },
+  { view: { name: 'learn' }, emoji: '🎓', label: 'toolLearn', cls: 'learn' },
+  { view: { name: 'study' }, emoji: '🧠', label: 'toolStudy', cls: 'study' },
+  { view: { name: 'mycard' }, emoji: '🎂', label: 'toolMyCard', cls: 'mycard' },
+  { view: { name: 'journal' }, emoji: '📅', label: 'toolJournal', cls: 'journal' },
+]
+
 export function Home({ notice }: { notice?: HomeNotice }) {
   const go = useApp((s) => s.go)
   const recent = useApp((s) => s.recent)
@@ -47,6 +57,7 @@ export function Home({ notice }: { notice?: HomeNotice }) {
   const lang = useApp((s) => s.lang)
   const T = STRINGS[lang]
   const spreads = getSpreads(lang)
+  const [confirmClear, setConfirmClear] = useState(false)
 
   // 首訪判斷：沒有任何最近紀錄、收藏與每日牌史才顯示入門卡
   const firstVisit =
@@ -79,51 +90,55 @@ export function Home({ notice }: { notice?: HomeNotice }) {
         <span className="daily-line">{T.dailyLine}</span>
       </button>
 
-      <div className="mode-cards">
-        {MODES.map((m) => (
-          <div className="mode-card" key={m.spread}>
-            <h3>
-              {m.emoji} {spreads[m.spread].name}
-              {m.advanced && <span className="adv-badge">{T.advBadge}</span>}
-            </h3>
-            <p className="mode-desc">{MODE_DESC[lang][m.spread]}</p>
-            <div className="mode-actions">
-              <button type="button" className="btn primary" onClick={() => go({ name: 'draw', spread: m.spread })}>
-                {T.drawOnline}
-              </button>
-              <button type="button" className="btn" onClick={() => go({ name: 'manual', spread: m.spread })}>
-                {T.enterPhysical}
-              </button>
-            </div>
-          </div>
+      <div className="tool-row" aria-label={T.navLabel}>
+        {TOOLS.map((t) => (
+          <button type="button" className={`tool-chip tool-${t.cls}`} key={t.cls} onClick={() => go(t.view)}>
+            <span className="tool-emoji" aria-hidden="true">
+              {t.emoji}
+            </span>
+            <span className="tool-label">{T[t.label] as string}</span>
+          </button>
         ))}
       </div>
 
-      <div className="home-links">
-        <button type="button" className="browse-link" onClick={() => go({ name: 'browse' })}>
-          {T.browseLink}
-        </button>
-        <button type="button" className="browse-link" onClick={() => go({ name: 'learn' })}>
-          {T.learnLink}
-        </button>
-        <button type="button" className="browse-link study-link" onClick={() => go({ name: 'study' })}>
-          {T.studyLink}
-        </button>
-        <button type="button" className="browse-link mycard-link" onClick={() => go({ name: 'mycard' })}>
-          {T.myCardLink}
-        </button>
-        <button type="button" className="browse-link" onClick={() => go({ name: 'journal' })}>
-          {T.journalLink}
-        </button>
+      <h3 className="section-title">{T.spreadsTitle}</h3>
+      <div className="mode-cards">
+        {MODES.map((m) => (
+          <button type="button" className={`mode-card tone-${m.spread}`} key={m.spread} onClick={() => go({ name: 'draw', spread: m.spread })}>
+            <span className="mode-head">
+              <span className="mode-emoji" aria-hidden="true">
+                {m.emoji}
+              </span>
+              <span className="mode-name">
+                {spreads[m.spread].name}
+                {m.advanced && <span className="adv-badge">{T.advBadge}</span>}
+              </span>
+            </span>
+            <span className="mode-desc">{MODE_DESC[lang][m.spread]}</span>
+          </button>
+        ))}
       </div>
 
       {recent.length > 0 && (
         <div className="recent">
           <div className="recent-head">
             <h3>{T.recentTitle}</h3>
-            <button type="button" className="btn subtle" onClick={clearHistory}>
-              {T.clear}
-            </button>
+            {confirmClear ? (
+              <button
+                type="button"
+                className="btn danger confirm-clear"
+                onClick={() => {
+                  clearHistory()
+                  setConfirmClear(false)
+                }}
+              >
+                {T.clearConfirm}
+              </button>
+            ) : (
+              <button type="button" className="btn subtle" onClick={() => setConfirmClear(true)}>
+                {T.clear}
+              </button>
+            )}
           </div>
           {recent.map((e) => {
             const k = entryKey(e)

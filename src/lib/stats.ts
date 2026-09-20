@@ -2,7 +2,7 @@
 // 去重規則：最近與收藏可能是同一次抽牌 → 以 entryKey 去重；
 // 每日一牌以 daily 史為準（每個名字×日期算一次），recent/saved 裡的 daily 條目跳過防重複計。
 import type { SpreadId } from '../content/positions'
-import { entryKey, loadDailyHistory, loadRecent, loadSaved } from './storage'
+import { entryKey, loadDailyHistory, loadReadingCount, loadRecent, loadSaved } from './storage'
 
 export interface DrawStats {
   readings: number // 累計抽牌次數（一次牌陣＝一次）
@@ -52,5 +52,6 @@ export function computeStats(): DrawStats {
     .sort((a, b) => b.count - a.count || a.index - b.index)
     .slice(0, 5)
 
-  return { readings, cardsTotal: upright + reversed, upright, reversed, top, spreads }
+  // 最近紀錄只留 12 筆會讓「累計」隨時間縮水：取單調計數器與實算的較大者
+  return { readings: Math.max(readings, loadReadingCount()), cardsTotal: upright + reversed, upright, reversed, top, spreads }
 }

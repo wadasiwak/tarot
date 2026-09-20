@@ -1,13 +1,19 @@
 {
-  "name": "日常塔羅",
+  "name": "日常塔羅 Everyday Tarot",
   "short_name": "日常塔羅",
-  "description": "線上塔羅抽牌與解讀：每日一牌、三張牌陣、是非二選一，支援正逆位",
+  "description": "線上塔羅抽牌與解讀：每日一牌、三張牌陣、是非二選一、凱爾特十字，支援正逆位",
+  "lang": "zh-Hant-TW",
+  "id": "./",
   "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#131022",
   "theme_color": "#131022",
   "icons": [
     { "src": "./favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
-    { "src": "./apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any" }
+    { "src": "./apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }
