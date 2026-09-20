@@ -1,6 +1,7 @@
 import { useApp } from './state'
 import { STRINGS } from './lib/i18n'
 import { Home } from './components/Home'
+import { BackBar } from './components/BackBar'
 import { Daily } from './components/Daily'
 import { DrawFlow } from './components/DrawFlow'
 import { ManualEntry } from './components/ManualEntry'
@@ -22,8 +23,10 @@ export default function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1 className="clickable" onClick={() => go({ name: 'home' })}>
-          {T.siteTitle}
+        <h1>
+          <button type="button" className="title-btn" onClick={() => go({ name: 'home' })}>
+            {T.siteTitle}
+          </button>
         </h1>
         <span className="header-sub">{T.headerSub}</span>
         <button
@@ -36,7 +39,8 @@ export default function App() {
         </button>
       </header>
 
-      {view.name === 'home' && <Home />}
+      {view.name !== 'home' && <BackBar />}
+      {view.name === 'home' && <Home notice={view.notice} />}
       {view.name === 'daily' && <Daily date={view.date} />}
       {view.name === 'draw' && <DrawFlow spread={view.spread} key={view.spread} />}
       {view.name === 'manual' && <ManualEntry spread={view.spread} key={view.spread} />}

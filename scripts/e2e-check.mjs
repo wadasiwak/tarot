@@ -2,6 +2,7 @@
 // GoatCounter 隱私、免責聲明、牌庫、localStorage。
 // 需先 npm run build；本腳本自行啟動 vite preview（port 5231，避開 dev server 5230）。
 import { spawn } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import { chromium } from 'playwright'
 import { REGISTRY } from '../src/content/registry.ts' // Node 原生 type stripping（年度牌名比對用）
 
@@ -83,6 +84,25 @@ try {
   const named2 = await page.textContent('.daily-front .card-caption')
   if (named1 !== named2) fail(`同名同日結果不穩定：「${named1}」vs「${named2}」`)
   await page.evaluate(() => localStorage.removeItem('tarot.name.v1'))
+
+  // 2c. 回顧過去日期：可看牌但不寫每日史（不能回填打卡）、有提示；未來／不存在的日期 fallback 今天
+  const pastRec = await page.evaluate(() => JSON.parse(localStorage.getItem('tarot.daily.v1') || '{}'))
+  if (pastRec['小美']?.['2026-01-15']) fail('回顧過去日期的翻牌不應寫入每日史')
+  if (!(await page.$('.daily-past-note'))) fail('回顧過去日期應顯示「不計入打卡」提示')
+  const todayLocal = await page.evaluate(() => {
+    const d = new Date()
+    const pad = (n) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+  })
+  for (const bad of ['2099-01-01', '2026-02-31']) {
+    await page.goto(`${BASE_URL}#daily/${bad}`)
+    await page.reload()
+    await page.waitForSelector('.daily-view', { timeout: 3000 })
+    const intro = await page.textContent('.reading-intro')
+    if (!intro.includes(todayLocal)) fail(`#daily/${bad} 應 fallback 今天 ${todayLocal}，實得「${intro}」`)
+  }
+  // 後面改名測試（18）需要小美 2026-01-15 有史：直接植入
+  await page.evaluate(() => localStorage.setItem('tarot.daily.v1', JSON.stringify({ 小美: { '2026-01-15': { index: 0, reversed: false } } })))
 
   // 3. hash 直開還原：單牌詳情（正/逆位）、reading 三區段
   await page.goto(`${BASE_URL}#card/wands-03`)
@@ -671,10 +691,176 @@ try {
   const treeSlots = await page.$$('.manual-slot')
   if (treeSlots.length !== 6) fail(`關係之樹手動輸入應 6 個位置格，實得 ${treeSlots.length}`)
 
+  // 25. 返回鍵：站內導航 push 進 history，瀏覽器返回回上一頫而非離站；返回列在非首頁出現
+  await page.goto(BASE_URL)
+  await page.reload()
+  await page.waitForSelector('.hero', { timeout: 3000 })
+  if (await page.$('.back-bar')) fail('首頁不應有返回列')
+  await page.click('.mode-card:nth-child(1) .btn.primary')
+  await page.waitForSelector('.draw-flow', { timeout: 3000 })
+  if (!(await page.$('.back-bar'))) fail('非首頁畫面應有返回列')
+  await page.goBack()
+  await page.waitForSelector('.hero', { timeout: 3000 }).catch(() => fail('瀏覽器返回應回到首頁（不是離站）'))
+  await page.goForward()
+  await page.waitForSelector('.draw-flow', { timeout: 3000 }).catch(() => fail('瀏覽器前進應回到抽牌頁'))
+  // 解讀 → 單牌詳情 → 返回列的「返回」應回到同一份解讀（不是牌庫）
+  await page.goto(`${BASE_URL}#r/three/34r-7-61`)
+  await page.reload()
+  await page.waitForSelector('.reading', { timeout: 3000 })
+  await page.click('.reading-card:nth-child(1) .btn.subtle')
+  await page.waitForSelector('.card-detail', { timeout: 3000 })
+  await page.click('.back-bar .back-btn')
+  await page.waitForSelector('.reading', { timeout: 3000 }).catch(() => fail('單牌詳情的返回應回到剛才的解讀'))
+  if (!page.url().includes('#r/three/34r-7-61')) fail(`返回後網址應是原解讀，實得 ${page.url()}`)
+  // 直開詳情（沒有站內上一頁）→ 返回回首頁
+  await page.goto(`${BASE_URL}#card/wands-03`)
+  await page.reload()
+  await page.waitForSelector('.card-detail', { timeout: 3000 })
+  await page.click('.back-bar .back-btn')
+  await page.waitForSelector('.hero', { timeout: 3000 }).catch(() => fail('直開詳情按返回應回首頁'))
+  await page.click('.mode-card:nth-child(1) .btn.primary')
+  await page.waitForSelector('.draw-flow', { timeout: 3000 })
+  await page.click('.back-bar .home-btn')
+  await page.waitForSelector('.hero', { timeout: 3000 }).catch(() => fail('返回列的首頁鈕應回首頁'))
+
+  // 26. 中途重新整理：線上抽牌切完牌、點了 1 張後 reload 應接續（不重來）；手動輸入選了 1 張 reload 保留
+  await page.goto(`${BASE_URL}#draw/three`)
+  await page.reload()
+  await page.fill('.question-input', '續抽測試')
+  await page.click('.draw-ask .btn.primary')
+  await page.waitForSelector('.cut-deck', { timeout: 6000 })
+  for (let i = 0; i < 3; i++) {
+    await page.click('.cut-deck')
+    await page.waitForTimeout(150)
+  }
+  await page.waitForSelector('.fan-arc', { timeout: 3000 })
+  await page.click('.fan-slot:nth-child(40) .fan-card', { force: true })
+  await page.waitForSelector('.fan-slot.picked', { timeout: 2000 })
+  await page.reload()
+  await page.waitForSelector('.fan-arc', { timeout: 3000 }).catch(() => fail('抽牌中途 reload 應停在扇排步驟'))
+  if ((await page.$$('.fan-slot.picked')).length !== 1) fail('抽牌中途 reload 應保留已點的 1 張')
+  if (!(await page.$('.resumed-note'))) fail('續抽應顯示「已接續」提示')
+  for (const i of [10, 60]) await page.click(`.fan-slot:nth-child(${i}) .fan-card`, { force: true })
+  await page.waitForSelector('.reveal-cards', { timeout: 3000 })
+  await page.reload()
+  await page.waitForSelector('.reveal-cards', { timeout: 3000 }).catch(() => fail('翻牌步驟 reload 應停在翻牌'))
+  for (const box of await page.$$('.flip-box')) await box.click()
+  await page.waitForSelector('.see-reading', { timeout: 3000 })
+  await page.click('.see-reading')
+  await page.waitForSelector('.reading', { timeout: 3000 })
+  if (!(await page.textContent('.asked-question')).includes('續抽測試')) fail('續抽後問題文字應保留到解讀頁')
+  const inflightAfter = await page.evaluate(() => sessionStorage.getItem('tarot.inflight.v1'))
+  if (inflightAfter) fail('看解讀後應清掉續抽快照')
+  await page.goto(`${BASE_URL}#manual/three`)
+  await page.reload()
+  await page.fill('.search-input', '愚者')
+  await page.click('.card-grid .grid-cell')
+  await page.click('.orientation-btn:nth-child(1)')
+  await page.waitForSelector('.manual-slot.current:nth-child(2)', { timeout: 2000 })
+  await page.reload()
+  await page.waitForSelector('.manual-entry', { timeout: 3000 })
+  if (!(await page.textContent('.manual-slot:nth-child(1) .slot-card')).includes('愚者')) fail('手動輸入中途 reload 應保留已選的牌')
+  await page.evaluate(() => sessionStorage.removeItem('tarot.inflight.v1'))
+
+  // 27. 備份與還原：下載 JSON（含 app 標記與各 key）→ 清空本機 → 從檔案合併還原 → 收藏回來
+  await page.goto(`${BASE_URL}#journal`)
+  await page.reload()
+  await page.waitForSelector('.backup-section', { timeout: 3000 })
+  const savedBefore = await page.evaluate(() => localStorage.getItem('tarot.saved.v1'))
+  if (!savedBefore) fail('備份測試前應已有收藏資料')
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 5000 }), page.click('.export-backup')])
+  if (!/^tarot-backup-\d{8}\.json$/.test(dl.suggestedFilename())) fail(`備份檔名應為 tarot-backup-YYYYMMDD.json，實得 ${dl.suggestedFilename()}`)
+  const dlPath = await dl.path()
+  const backup = JSON.parse(readFileSync(dlPath, 'utf8'))
+  if (backup.app !== 'tarot' || backup.version !== 1) fail('備份檔應帶 app=tarot 與 version')
+  for (const k of ['tarot.saved.v1', 'tarot.daily.v1', 'tarot.study.v1']) if (!(k in backup.data)) fail(`備份檔缺 ${k}`)
+  await page.evaluate(() => localStorage.clear())
+  await page.reload()
+  await page.waitForSelector('.backup-section', { timeout: 3000 })
+  if (!(await page.$('.saved-empty'))) fail('清空後收藏清單應為空')
+  await page.setInputFiles('.import-file', dlPath)
+  await page.waitForSelector('.backup-msg.ok', { timeout: 3000 }).catch(() => fail('匯入備份應顯示成功'))
+  await page.waitForTimeout(1200)
+  await page.waitForSelector('.saved-item', { timeout: 3000 }).catch(() => fail('還原後收藏清單應回來'))
+  const savedAfter = await page.evaluate(() => localStorage.getItem('tarot.saved.v1'))
+  if (JSON.parse(savedAfter).length !== JSON.parse(savedBefore).length) fail('還原後收藏筆數應與備份一致')
+  // 壞檔：不是本站備份 → 提示、不動資料
+  const { writeFileSync } = await import('node:fs')
+  const badPath = `${dlPath}.bad.json`
+  writeFileSync(badPath, JSON.stringify({ hello: 'world' }))
+  await page.setInputFiles('.import-file', badPath)
+  await page.waitForSelector('.backup-msg.bad', { timeout: 3000 }).catch(() => fail('匯入非本站檔案應提示錯誤'))
+
+  // 28. 壞分享連結：回首頁並帶提示；其他非法 hash 不提示
+  await page.goto(`${BASE_URL}#r/three/99-1-2`)
+  await page.reload()
+  await page.waitForSelector('.home-notice', { timeout: 3000 }).catch(() => fail('壞分享連結應在首頁顯示提示'))
+  await page.goto(`${BASE_URL}#card/fake-id`)
+  await page.reload()
+  await page.waitForSelector('.hero', { timeout: 3000 })
+  if (await page.$('.home-notice')) fail('非分享連結的非法 hash 不應顯示壞連結提示')
+
+  // 29. 二選一：hash 直開 2 區段＋比較橫幅；手動輸入 2 張出結果
+  await page.goto(`${BASE_URL}#r/choice/0-13r`)
+  await page.reload()
+  await page.waitForSelector('.reading', { timeout: 3000 })
+  if ((await page.$$('.reading-card')).length !== 2) fail('#r/choice 應 2 區段')
+  if (!(await page.$('.choice-banner'))) fail('二選一應顯示比較橫幅')
+  if ((await page.$$('.verdict-badge')).length !== 2) fail('二選一兩張牌都應有 verdict 徽章')
+  await page.goto(`${BASE_URL}#manual/choice`)
+  await page.reload()
+  for (const q of ['愚者', '魔術師']) {
+    await page.fill('.search-input', q)
+    await page.click('.card-grid .grid-cell')
+    await page.click('.orientation-btn:nth-child(1)')
+    await page.waitForTimeout(150)
+  }
+  await page.waitForSelector('.reading .choice-banner', { timeout: 3000 }).catch(() => fail('二選一手動輸入 2 張後應進解讀並有橫幅'))
+  await page.evaluate(() => sessionStorage.removeItem('tarot.inflight.v1'))
+
+  // 30. 連續天數：今天還沒翻時從昨天起算（昨天＋前天有史 → 顯示 2 天）
+  await page.evaluate(() => {
+    const pad = (n) => String(n).padStart(2, '0')
+    const key = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+    const d1 = new Date()
+    d1.setDate(d1.getDate() - 1)
+    const d2 = new Date()
+    d2.setDate(d2.getDate() - 2)
+    localStorage.removeItem('tarot.name.v1')
+    localStorage.setItem('tarot.daily.v1', JSON.stringify({ '': { [key(d1)]: { index: 1, reversed: false }, [key(d2)]: { index: 2, reversed: true } } }))
+  })
+  await page.goto(`${BASE_URL}#journal`)
+  await page.reload()
+  await page.waitForSelector('.cal-grid', { timeout: 3000 })
+  const streakText = await page.textContent('.streak-badge').catch(() => '')
+  if (!streakText || !streakText.includes('2')) fail(`今天未翻時 streak 應從昨天起算為 2，實得「${streakText}」`)
+
+  // 31. 壞資料防禦：localStorage 塞越界 index／未知 spread，首頁與回顧照常渲染、無 pageerror
+  await page.evaluate(() => {
+    localStorage.setItem(
+      'tarot.recent.v1',
+      JSON.stringify([
+        { spread: 'nope', cards: [{ index: 1, reversed: false }], at: '2026-01-01' },
+        { spread: 'three', cards: [{ index: 999, reversed: false }], at: '2026-01-01' },
+        { spread: 'three', cards: [{ index: 1, reversed: false }, { index: 2, reversed: true }, { index: 3, reversed: false }], at: '2026-01-01' },
+        'garbage',
+      ]),
+    )
+    localStorage.setItem('tarot.saved.v1', JSON.stringify([{ id: 'x', spread: 'yesno', cards: [{ index: -1, reversed: false }], at: '2026-01-01' }, 42]))
+  })
+  await page.goto(BASE_URL)
+  await page.reload()
+  await page.waitForSelector('.hero', { timeout: 3000 })
+  if ((await page.$$('.recent-item')).length !== 1) fail('壞的最近紀錄應被丟棄，只留 1 筆合法的')
+  await page.goto(`${BASE_URL}#journal`)
+  await page.reload()
+  await page.waitForSelector('.saved-list', { timeout: 3000 })
+  if (await page.$('.saved-item')) fail('壞的收藏紀錄應被丟棄')
+
   if (consoleErrors.length) fail(`頁面有未捕捉錯誤：${consoleErrors.join(' | ')}`)
 
   await browser.close()
-  console.log('e2e OK：首頁+首訪入門卡、每日一牌seed、hash直開、非法hash防禦、抽牌流程、分享還原、AI複製、是非、手動輸入、GoatCounter隱私、免責、牌庫78格、最近紀錄+單筆刪除、收藏+筆記、Journal收藏清單、暱稱改名、小學堂錨點與交叉連結、牌義學習(記憶卡/測驗/持久化/加入學習)、凱爾特十字(線上抽/手動/分享還原/十字總覽)、我的牌(生日牌/年度牌/本機保存)、抽牌統計(門檻/Top5/去重)、關係之樹(線上抽6張/分享還原/收藏/手動6格)、月度展望(線上抽5張/位置白話句/收藏/hash直開)全部通過')
+  console.log('e2e OK：首頁+首訪入門卡、每日一牌seed、hash直開、非法hash防禦、抽牌流程、分享還原、AI複製、是非、手動輸入、GoatCounter隱私、免責、牌庫78格、最近紀錄+單筆刪除、收藏+筆記、Journal收藏清單、暱稱改名、小學堂錨點與交叉連結、牌義學習(記憶卡/測驗/持久化/加入學習)、凱爾特十字(線上抽/手動/分享還原/十字總覽)、我的牌(生日牌/年度牌/本機保存)、抽牌統計(門檻/Top5/去重)、關係之樹(線上抽6張/分享還原/收藏/手動6格)、月度展望(線上抽5張/位置白話句/收藏/hash直開)、返回鍵/返回列、中途續抽、備份還原、壞連結提示、二選一、streak從昨天起算、壞資料防禦全部通過')
 } finally {
   server.kill()
 }

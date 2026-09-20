@@ -5,6 +5,7 @@ import { getMyCard } from '../content/mycard'
 import { birthCardNumber, parseBirthday, yearCardNumber } from '../lib/birthCard'
 import { loadBirthday, saveBirthday } from '../lib/storage'
 import { useApp } from '../state'
+import { todayStr } from '../lib/seed'
 import { STRINGS } from '../lib/i18n'
 import { CardFace } from './CardFace'
 import { ShareCardButton } from './ShareCardButton'
@@ -58,7 +59,7 @@ export function MyCard() {
             className="question-input birthday-input"
             type="date"
             min="1900-01-01"
-            max={new Date().toISOString().slice(0, 10)}
+            max={todayStr()}
             value={birthday}
             onChange={(e) => setBirthday(e.target.value)}
           />

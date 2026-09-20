@@ -4,6 +4,7 @@ import { useApp } from '../state'
 import { STRINGS } from '../lib/i18n'
 import { entryKey, loadDailyHistory } from '../lib/storage'
 import type { DrawableSpread } from '../lib/share'
+import type { HomeNotice } from '../state'
 
 const MODES: { spread: DrawableSpread; emoji: string; advanced?: boolean }[] = [
   { spread: 'three', emoji: '🃏' },
@@ -36,7 +37,7 @@ const MODE_DESC = {
   },
 } as const
 
-export function Home() {
+export function Home({ notice }: { notice?: HomeNotice }) {
   const go = useApp((s) => s.go)
   const recent = useApp((s) => s.recent)
   const saved = useApp((s) => s.saved)
@@ -59,6 +60,12 @@ export function Home() {
         <p className="hero-title">{T.heroTitle}</p>
         <p className="hero-sub">{T.heroSub}</p>
       </div>
+
+      {notice === 'badLink' && (
+        <p className="home-notice" role="status">
+          {T.badLinkNotice}
+        </p>
+      )}
 
       {firstVisit && (
         <button type="button" className="first-visit-card" onClick={() => go({ name: 'learn' })}>

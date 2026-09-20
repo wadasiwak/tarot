@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { clearInflight, loadInflight, saveInflight } from '../lib/inflight'
 import { getSpreads, SPREAD_SIZE } from '../content/positions'
 import { REGISTRY } from '../content/registry'
 import { shuffledDeck, drawFromDeck, type DrawnCard } from '../lib/draw'
@@ -8,6 +9,17 @@ import { STRINGS } from '../lib/i18n'
 import { CardBack, CardFace } from './CardFace'
 
 type Step = 'ask' | 'shuffle' | 'cut' | 'pick' | 'reveal'
+
+// 中途重新整理可續抽的快照（sessionStorage）；洗牌動畫中斷就重洗，不存 deck 以外的中間態
+interface DrawSnapshot {
+  step: Step
+  question: string
+  cuts: number
+  picked: number[]
+  drawn: DrawnCard[]
+  flipped: boolean[]
+  deck: number[]
+}
 
 function cryptoInt(max: number): number {
   const buf = new Uint32Array(1)
@@ -23,13 +35,15 @@ export function DrawFlow({ spread }: { spread: DrawableSpread }) {
   const def = getSpreads(lang)[spread]
   const need = SPREAD_SIZE[spread]
 
-  const [step, setStep] = useState<Step>('ask')
-  const [question, setQuestion] = useState('')
-  const [cuts, setCuts] = useState(0)
-  const [picked, setPicked] = useState<number[]>([]) // 被點的扇面位置（視覺用）
-  const [drawn, setDrawn] = useState<DrawnCard[]>([])
-  const [flipped, setFlipped] = useState<boolean[]>([])
-  const deckRef = useRef<number[]>([])
+  const snap = useRef(loadInflight<DrawSnapshot>('draw', spread)).current
+  const resumed = !!snap && snap.step !== 'ask'
+  const [step, setStep] = useState<Step>(snap?.step === 'shuffle' ? 'shuffle' : (snap?.step ?? 'ask'))
+  const [question, setQuestion] = useState(snap?.question ?? '')
+  const [cuts, setCuts] = useState(snap?.cuts ?? 0)
+  const [picked, setPicked] = useState<number[]>(snap?.picked ?? []) // 被點的扇面位置（視覺用）
+  const [drawn, setDrawn] = useState<DrawnCard[]>(snap?.drawn ?? [])
+  const [flipped, setFlipped] = useState<boolean[]>(snap?.flipped ?? [])
+  const deckRef = useRef<number[]>(snap?.deck ?? [])
 
   useEffect(() => {
     if (step !== 'shuffle') return
@@ -37,6 +51,12 @@ export function DrawFlow({ spread }: { spread: DrawableSpread }) {
     const t = setTimeout(() => setStep('cut'), 1800)
     return () => clearTimeout(t)
   }, [step])
+
+  // 每個狀態變化都存快照；回到 ask（尚未開始）就不留東西
+  useEffect(() => {
+    if (step === 'ask') return
+    saveInflight<DrawSnapshot>('draw', spread, { step, question, cuts, picked, drawn, flipped, deck: deckRef.current })
+  }, [spread, step, question, cuts, picked, drawn, flipped])
 
   // 切牌：每刀在隨機位置把牌堆疊上去（真的影響牌序）
   const cut = () => {
@@ -70,6 +90,7 @@ export function DrawFlow({ spread }: { spread: DrawableSpread }) {
   return (
     <div className="draw-flow">
       <h2 className="reading-title">{def.name}</h2>
+      {resumed && <p className="resumed-note">{T.resumedNote}</p>}
 
       {step === 'ask' && (
         <div className="draw-ask">
@@ -162,7 +183,10 @@ export function DrawFlow({ spread }: { spread: DrawableSpread }) {
             <button
               type="button"
               className="btn primary big see-reading"
-              onClick={() => openReading(spread, drawn, question.trim() || undefined)}
+              onClick={() => {
+                clearInflight()
+                openReading(spread, drawn, question.trim() || undefined)
+              }}
             >
               {T.seeReading}
             </button>

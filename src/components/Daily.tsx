@@ -27,11 +27,16 @@ export function Daily({ date }: { date?: string }) {
   const knownNames = loadNames()
   const displayName = lang === 'en' ? entry.nameEn : entry.name
 
+  const isToday = day === todayStr()
+
+  // 只有「今天」的翻牌才寫進每日史／打卡：回顧過去某天的牌不能回填連續天數
   const flip = () => {
     saveName(name)
     rememberName(name)
-    recordDaily(name, day, { index: drawn.index, reversed: drawn.reversed })
-    setStreak(streakOf(name, day))
+    if (isToday) {
+      recordDaily(name, day, { index: drawn.index, reversed: drawn.reversed })
+      setStreak(streakOf(name, day))
+    }
     setFlipped(true)
   }
 
@@ -39,6 +44,7 @@ export function Daily({ date }: { date?: string }) {
     <div className="daily-view">
       <h2 className="reading-title">{T.dailyTitle}</h2>
       <p className="reading-intro">{T.dailyIntro(day)}</p>
+      {!isToday && <p className="daily-past-note">{T.dailyPastNote}</p>}
       <div className="daily-stage">
         {!flipped ? (
           <div className="daily-back">

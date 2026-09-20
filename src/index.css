@@ -881,3 +881,39 @@ body {
 }
 .detail-sub.as-link:hover { color: var(--accent-bright); }
 .learn-reversed { font-size: 12px; }
+
+/* ===== 導航列（非首頁畫面）===== */
+.app-header h1 .title-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+}
+.app-header h1 .title-btn:hover { color: var(--accent-bright); }
+.back-bar { display: flex; justify-content: space-between; align-items: center; margin: 4px 0 0; }
+.back-bar .btn.subtle { min-height: 44px; padding: 8px 12px; }
+.back-bar .back-btn { margin-left: -12px; }
+.back-bar .home-btn { margin-right: -12px; }
+.home-notice {
+  background: rgba(255, 138, 122, 0.12);
+  border: 1px solid rgba(255, 138, 122, 0.4);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin: 0 0 14px;
+  font-size: 14px;
+  text-align: center;
+}
+.resumed-note, .daily-past-note { color: var(--accent-bright); font-size: 13px; text-align: center; margin: -6px 0 10px; letter-spacing: 1px; }
+
+/* 備份與還原 */
+.backup-section { margin: 26px 0 8px; }
+.import-modes { display: flex; flex-direction: column; gap: 6px; margin: 12px 0 0; color: var(--text-dim); font-size: 13px; }
+.import-modes label { display: flex; align-items: center; gap: 8px; min-height: 32px; cursor: pointer; }
+.import-modes input { accent-color: var(--accent); }
+.backup-msg { margin: 10px 0 0; font-size: 14px; }
+.backup-msg.ok { color: var(--good); }
+.backup-msg.bad { color: var(--poor); }

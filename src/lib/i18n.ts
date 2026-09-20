@@ -193,6 +193,26 @@ export const STRINGS = {
     statsOriTitle: '正逆位比例',
     statsSpreadTitle: '各牌陣使用次數',
     statsTopTitle: '最常抽到的牌 Top 5',
+    // 導航列
+    back: '← 返回',
+    homeLink: '⌂ 首頁',
+    navLabel: '導航',
+    badLinkNotice: '這個分享連結已失效或格式不對，先回到首頁。',
+    // 備份與還原
+    backupTitle: '💾 備份與還原',
+    backupIntro: '所有紀錄都只存在這台裝置的瀏覽器裡。換手機或清除瀏覽資料前，先下載一份備份；之後從檔案還原。',
+    exportBtn: '下載備份檔',
+    importBtn: '從檔案還原',
+    importMerge: '合併（本機已有的保留，只補缺）',
+    importReplace: '覆蓋（以備份檔為準，清掉本機現有紀錄）',
+    importOk: '✓ 還原完成，正在重新載入⋯',
+    importBad: '這不是本站的備份檔。',
+    importReadFail: '讀取檔案失敗，請再試一次。',
+    importConfirmReplace: '確定要用備份檔覆蓋這台裝置上的所有紀錄？此動作無法復原。',
+    saveFailed: '沒存到——瀏覽器拒絕寫入（可能是私密模式或空間不足）',
+    // 續抽
+    resumedNote: '已從上次中斷的地方接續。',
+    dailyPastNote: '這是回顧過去某天的牌，不會計入打卡。',
   },
   en: {
     siteTitle: 'Everyday Tarot',
@@ -365,7 +385,27 @@ export const STRINGS = {
     statsCardsFlipped: 'Cards flipped',
     statsOriTitle: 'Upright vs reversed',
     statsSpreadTitle: 'Spreads used',
-    statsTopTitle: 'Top 5 most-drawn cards',
+    statsTopTitle: 'Most drawn cards — Top 5',
+    // Navigation
+    back: '← Back',
+    homeLink: '⌂ Home',
+    navLabel: 'Navigation',
+    badLinkNotice: 'That shared link is broken or expired — here is the home page instead.',
+    // Backup
+    backupTitle: '💾 Backup & restore',
+    backupIntro: 'Everything lives in this browser only. Download a backup before switching phones or clearing site data, then restore from the file.',
+    exportBtn: 'Download backup',
+    importBtn: 'Restore from file',
+    importMerge: 'Merge (keep what is here, fill in the gaps)',
+    importReplace: 'Replace (the backup wins; wipes current records)',
+    importOk: '✓ Restored — reloading…',
+    importBad: 'That is not a backup file from this site.',
+    importReadFail: 'Could not read the file, please try again.',
+    importConfirmReplace: 'Replace every record on this device with the backup? This cannot be undone.',
+    saveFailed: 'Not saved — the browser refused to write (private mode or storage full)',
+    // Resume
+    resumedNote: 'Picked up where you left off.',
+    dailyPastNote: 'Looking back at a past day — this does not count toward your streak.',
   },
 } as const
 

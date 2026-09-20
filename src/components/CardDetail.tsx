@@ -56,9 +56,6 @@ export function CardDetail({ id, reversed }: { id: string; reversed: boolean }) 
 
   return (
     <div className="card-detail">
-      <button type="button" className="btn subtle" onClick={() => go({ name: 'browse' })}>
-        {T.backToBrowse}
-      </button>
       <div className="detail-head">
         <div className="detail-img">
           <CardFace index={index} reversed={reversed} />

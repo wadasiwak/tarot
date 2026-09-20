@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
+import { backupFilename, exportBackup, importBackup } from '../lib/backup'
 import { REGISTRY } from '../content/registry'
 import { getSpreads, SPREAD_SIZE, type SpreadId } from '../content/positions'
 import { computeStats } from '../lib/stats'
-import { loadDailyHistory, loadName, loadNames, renameDailyName, streakOf, type SavedReading } from '../lib/storage'
+import { lastWriteFailed, loadDailyHistory, loadName, loadNames, renameDailyName, streakOf, type SavedReading } from '../lib/storage'
 import { todayStr } from '../lib/seed'
 import { useApp } from '../state'
 import { STRINGS } from '../lib/i18n'
@@ -37,6 +38,39 @@ export function Journal() {
   const [confirmDel, setConfirmDel] = useState<string | null>(null)
   const [noteDraft, setNoteDraft] = useState('')
   const [noteSaved, setNoteSaved] = useState(false)
+
+  // 備份與還原
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [importMode, setImportMode] = useState<'merge' | 'replace'>('merge')
+  const [backupMsg, setBackupMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
+  const doExport = () => {
+    const blob = new Blob([exportBackup(today)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = backupFilename(today)
+    a.click()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
+
+  const doImport = async (file: File | undefined) => {
+    if (!file) return
+    if (importMode === 'replace' && !window.confirm(T.importConfirmReplace)) {
+      if (fileRef.current) fileRef.current.value = ''
+      return
+    }
+    try {
+      const ok = importBackup(await file.text(), importMode)
+      if (ok) {
+        setBackupMsg({ ok: true, text: T.importOk })
+        setTimeout(() => location.reload(), 600)
+      } else setBackupMsg({ ok: false, text: T.importBad })
+    } catch {
+      setBackupMsg({ ok: false, text: T.importReadFail })
+    }
+    if (fileRef.current) fileRef.current.value = ''
+  }
 
   // 抽牌統計（聚合每日史＋最近＋收藏；saved 增刪時重算）
   const stats = useMemo(() => computeStats(), [saved]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -297,7 +331,7 @@ export function Journal() {
                         setNoteSaved(true)
                       }}
                     >
-                      {noteSaved ? T.noteSaved : T.saveNote}
+                      {noteSaved ? (lastWriteFailed() ? T.saveFailed : T.noteSaved) : T.saveNote}
                     </button>
                     <button type="button" className="btn open-saved" onClick={() => openSaved(e)}>
                       {T.openSaved}
@@ -325,6 +359,40 @@ export function Journal() {
             </div>
           )
         })}
+      </div>
+
+      <div className="backup-section">
+        <h3 className="saved-title">{T.backupTitle}</h3>
+        <p className="saved-empty">{T.backupIntro}</p>
+        <div className="reading-actions">
+          <button type="button" className="btn export-backup" onClick={doExport}>
+            {T.exportBtn}
+          </button>
+          <button type="button" className="btn import-backup" onClick={() => fileRef.current?.click()}>
+            {T.importBtn}
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/json,.json"
+            className="import-file"
+            hidden
+            onChange={(e) => void doImport(e.target.files?.[0])}
+          />
+        </div>
+        <div className="import-modes">
+          <label>
+            <input type="radio" name="import-mode" checked={importMode === 'merge'} onChange={() => setImportMode('merge')} /> {T.importMerge}
+          </label>
+          <label>
+            <input type="radio" name="import-mode" checked={importMode === 'replace'} onChange={() => setImportMode('replace')} /> {T.importReplace}
+          </label>
+        </div>
+        {backupMsg && (
+          <p className={`backup-msg ${backupMsg.ok ? 'ok' : 'bad'}`} role="status">
+            {backupMsg.text}
+          </p>
+        )}
       </div>
     </div>
   )

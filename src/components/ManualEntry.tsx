@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { clearInflight, loadInflight, saveInflight } from '../lib/inflight'
 import { REGISTRY, indexOfCard, type RegistryEntry } from '../content/registry'
 import { getSpreads, SPREAD_SIZE } from '../content/positions'
 import { SUIT_NAMES, SUIT_NAMES_EN } from '../content/types'
@@ -19,8 +20,14 @@ export function ManualEntry({ spread }: { spread: DrawableSpread }) {
   const def = getSpreads(lang)[spread]
   const need = SPREAD_SIZE[spread]
 
-  const [question, setQuestion] = useState('')
-  const [chosen, setChosen] = useState<DrawnCard[]>([])
+  // 中途重新整理不丟已選的牌（sessionStorage 快照）
+  const snap = useRef(loadInflight<{ question: string; chosen: DrawnCard[] }>('manual', spread)).current
+  const [question, setQuestion] = useState(snap?.question ?? '')
+  const [chosen, setChosen] = useState<DrawnCard[]>(snap?.chosen ?? [])
+  useEffect(() => {
+    if (chosen.length === 0 && !question) return
+    saveInflight('manual', spread, { question, chosen })
+  }, [spread, question, chosen])
   const [tab, setTab] = useState<(typeof TAB_KEYS)[number]>('major')
   const [query, setQuery] = useState('')
   const [pendingId, setPendingId] = useState<string | null>(null) // 已點牌、待選正逆位
@@ -42,8 +49,10 @@ export function ManualEntry({ spread }: { spread: DrawableSpread }) {
     const next = [...chosen, { index, reversed }]
     setPendingId(null)
     setQuery('')
-    if (next.length === need) openReading(spread, next, question.trim() || undefined)
-    else setChosen(next)
+    if (next.length === need) {
+      clearInflight()
+      openReading(spread, next, question.trim() || undefined)
+    } else setChosen(next)
   }
 
   return (

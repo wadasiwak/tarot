@@ -6,7 +6,8 @@ import { VERDICT_LABELS, VERDICT_LABELS_EN } from '../content/types'
 import type { DrawnCard } from '../lib/draw'
 import { compareChoice } from '../lib/verdict'
 import { shareUrl, type DrawableSpread } from '../lib/share'
-import { entryKey } from '../lib/storage'
+import { entryKey, lastWriteFailed } from '../lib/storage'
+import { todayStr } from '../lib/seed'
 import { useApp } from '../state'
 import { STRINGS } from '../lib/i18n'
 import { CardFace } from './CardFace'
@@ -178,13 +179,13 @@ export function Reading({ spread, cards, question }: { spread: DrawableSpread; c
         <button
           type="button"
           className={`btn save-reading ${savedEntry ? 'saved' : ''}`}
-          onClick={() => toggleSaved({ spread, cards, at: savedEntry?.at ?? new Date().toISOString().slice(0, 10), question })}
+          onClick={() => toggleSaved({ spread, cards, at: savedEntry?.at ?? todayStr(), question })}
         >
           {savedEntry ? T.savedBadge : T.saveReading}
         </button>
         <ShareCardButton
           title={def.name}
-          subtitle={new Date().toISOString().slice(0, 10)}
+          subtitle={savedEntry?.at ?? todayStr()}
           cards={cards}
           positionTitles={cards.length > 1 ? def.positions.map((p) => p.title) : undefined}
         />
@@ -215,7 +216,7 @@ export function Reading({ spread, cards, question }: { spread: DrawableSpread; c
               setNoteSaved(true)
             }}
           >
-            {noteSaved ? T.noteSaved : T.saveNote}
+            {noteSaved ? (lastWriteFailed() ? T.saveFailed : T.noteSaved) : T.saveNote}
           </button>
         </div>
       )}

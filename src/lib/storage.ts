@@ -2,6 +2,41 @@
 import type { DrawnCard } from './draw'
 import type { DrawableSpread } from './share'
 import { newEntry, review, type Rating, type SrsEntry } from './srs'
+import { CARD_COUNT } from '../content/registry'
+import { SPREAD_SIZE } from '../content/positions'
+
+// —— 讀取時逐筆驗 shape ——
+// localStorage 是用戶可改、跨版本殘留的外部輸入：一筆 index 越界或 spread 改名
+// 不該讓整個首頁白屏，壞筆直接丟棄。
+const isDate = (s: unknown): s is string => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s)
+export function isDrawnCard(c: unknown): c is DrawnCard {
+  if (!c || typeof c !== 'object') return false
+  const o = c as Record<string, unknown>
+  return Number.isInteger(o.index) && (o.index as number) >= 0 && (o.index as number) < CARD_COUNT && typeof o.reversed === 'boolean'
+}
+function isEntry(e: unknown): e is RecentEntry {
+  if (!e || typeof e !== 'object') return false
+  const o = e as Record<string, unknown>
+  if (typeof o.spread !== 'string' || !(o.spread in SPREAD_SIZE)) return false
+  if (!Array.isArray(o.cards) || o.cards.length === 0 || !o.cards.every(isDrawnCard)) return false
+  if (!isDate(o.at)) return false
+  return o.question === undefined || typeof o.question === 'string'
+}
+
+// —— 寫入結果 ——
+// 私密模式／空間不足時 setItem 會丟；呼叫端讀 lastWriteFailed() 決定要不要跟用戶說「沒存到」。
+let writeFailed = false
+export const lastWriteFailed = () => writeFailed
+function writeLS(key: string, value: string): boolean {
+  try {
+    localStorage.setItem(key, value)
+    writeFailed = false
+    return true
+  } catch {
+    writeFailed = true
+    return false
+  }
+}
 
 export interface RecentEntry {
   spread: DrawableSpread | 'daily'
@@ -23,7 +58,7 @@ export function loadRecent(): RecentEntry[] {
     const raw = localStorage.getItem(KEY)
     if (!raw) return []
     const list = JSON.parse(raw)
-    return Array.isArray(list) ? list : []
+    return Array.isArray(list) ? list.filter(isEntry) : []
   } catch {
     return []
   }
@@ -33,21 +68,13 @@ export function addRecent(entry: RecentEntry): RecentEntry[] {
   const list = loadRecent().filter((e) => entryKey(e) !== entryKey(entry))
   list.unshift(entry)
   const trimmed = list.slice(0, MAX)
-  try {
-    localStorage.setItem(KEY, JSON.stringify(trimmed))
-  } catch {
-    // 隱私模式等寫入失敗就算了
-  }
+  writeLS(KEY, JSON.stringify(trimmed))
   return trimmed
 }
 
 export function removeRecentEntry(key: string): RecentEntry[] {
   const list = loadRecent().filter((e) => entryKey(e) !== key)
-  try {
-    localStorage.setItem(KEY, JSON.stringify(list))
-  } catch {
-    // ignore
-  }
+  writeLS(KEY, JSON.stringify(list))
   return list
 }
 
@@ -68,18 +95,17 @@ export function loadSaved(): SavedReading[] {
     const raw = localStorage.getItem(SAVED_KEY)
     if (!raw) return []
     const list = JSON.parse(raw)
-    return Array.isArray(list) ? list : []
+    if (!Array.isArray(list)) return []
+    return list.filter(
+      (e): e is SavedReading => isEntry(e) && typeof (e as SavedReading).id === 'string' && ((e as SavedReading).note === undefined || typeof (e as SavedReading).note === 'string'),
+    )
   } catch {
     return []
   }
 }
 
 function persistSaved(list: SavedReading[]): SavedReading[] {
-  try {
-    localStorage.setItem(SAVED_KEY, JSON.stringify(list))
-  } catch {
-    // ignore
-  }
+  writeLS(SAVED_KEY, JSON.stringify(list))
   return list
 }
 
@@ -110,7 +136,17 @@ export function loadDailyHistory(): DailyHistory {
   try {
     const raw = localStorage.getItem(DAILY_KEY)
     const obj = raw ? JSON.parse(raw) : {}
-    return obj && typeof obj === 'object' ? obj : {}
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return {}
+    const out: DailyHistory = {}
+    for (const [name, days] of Object.entries(obj as Record<string, unknown>)) {
+      if (!days || typeof days !== 'object') continue
+      const clean: Record<string, DailyRecord> = {}
+      for (const [date, rec] of Object.entries(days as Record<string, unknown>)) {
+        if (isDate(date) && isDrawnCard(rec)) clean[date] = { index: rec.index, reversed: rec.reversed }
+      }
+      out[name] = clean
+    }
+    return out
   } catch {
     return {}
   }
@@ -121,17 +157,19 @@ export function recordDaily(name: string, date: string, rec: DailyRecord): void 
     const all = loadDailyHistory()
     const who = name.trim()
     all[who] = { ...all[who], [date]: rec }
-    localStorage.setItem(DAILY_KEY, JSON.stringify(all))
+    writeLS(DAILY_KEY, JSON.stringify(all))
   } catch {
     // ignore
   }
 }
 
-// 連續打卡天數：從 date 往回數連續有紀錄的天數
+// 連續打卡天數：從 date 往回數連續有紀錄的天數。
+// date 當天還沒翻牌時從前一天起算——早上打開回顧不該把 30 天連續顯示成 0。
 export function streakOf(name: string, date: string): number {
   const days = loadDailyHistory()[name.trim()] ?? {}
   let n = 0
   const d = new Date(`${date}T00:00:00`)
+  if (!days[date]) d.setDate(d.getDate() - 1)
   while (!Number.isNaN(d.getTime())) {
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
     if (!days[key]) break
@@ -158,11 +196,7 @@ export function rememberName(name: string): string[] {
   const who = name.trim()
   if (!who) return loadNames()
   const list = [who, ...loadNames().filter((n) => n !== who)].slice(0, 8)
-  try {
-    localStorage.setItem(NAMES_KEY, JSON.stringify(list))
-  } catch {
-    // ignore
-  }
+  writeLS(NAMES_KEY, JSON.stringify(list))
   return list
 }
 
@@ -238,11 +272,7 @@ export function loadStudy(): StudyState {
 }
 
 function persistStudy(s: StudyState): StudyState {
-  try {
-    localStorage.setItem(STUDY_KEY, JSON.stringify(s))
-  } catch {
-    // 隱私模式等寫入失敗就算了
-  }
+  writeLS(STUDY_KEY, JSON.stringify(s))
   return s
 }
 
@@ -291,6 +321,17 @@ export function saveBirthday(date: string): void {
     // ignore
   }
 }
+
+// 備份／還原用：全部 localStorage key（lang 在 i18n.ts）
+export const STORAGE_KEYS = {
+  recent: KEY,
+  saved: SAVED_KEY,
+  daily: DAILY_KEY,
+  names: NAMES_KEY,
+  name: NAME_KEY,
+  study: STUDY_KEY,
+  birthday: BIRTHDAY_KEY,
+} as const
 
 export function clearRecent(): void {
   try {
