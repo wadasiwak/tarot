@@ -17,7 +17,7 @@ export function isDrawnCard(c: unknown): c is DrawnCard {
 function isEntry(e: unknown): e is RecentEntry {
   if (!e || typeof e !== 'object') return false
   const o = e as Record<string, unknown>
-  if (typeof o.spread !== 'string' || !(o.spread in SPREAD_SIZE)) return false
+  if (typeof o.spread !== 'string' || !Object.hasOwn(SPREAD_SIZE, o.spread)) return false
   if (!Array.isArray(o.cards) || o.cards.length === 0 || !o.cards.every(isDrawnCard)) return false
   if (!isDate(o.at)) return false
   return o.question === undefined || typeof o.question === 'string'

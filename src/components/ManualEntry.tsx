@@ -29,6 +29,7 @@ export function ManualEntry({ spread }: { spread: DrawableSpread }) {
     if (chosen.length === 0 && !question) return
     saveInflight('manual', spread, { question, chosen })
   }, [spread, question, chosen])
+  useEffect(() => () => clearInflight(), []) // 主動離開就丟掉；重新整理不跑 unmount 所以能續
   const [tab, setTab] = useState<(typeof TAB_KEYS)[number]>('major')
   const [query, setQuery] = useState('')
   const [pendingId, setPendingId] = useState<string | null>(null) // 已點牌、待選正逆位

@@ -208,6 +208,8 @@ export const STRINGS = {
     importOk: '✓ 還原完成，正在重新載入⋯',
     importBad: '這不是本站的備份檔。',
     importReadFail: '讀取檔案失敗，請再試一次。',
+    importWriteFail: '瀏覽器拒絕寫入（空間不足或私密模式），本機紀錄已復原、未被覆蓋。',
+    restartDraw: '重新開始',
     importConfirmReplace: '確定要用備份檔覆蓋這台裝置上的所有紀錄？此動作無法復原。',
     saveFailed: '沒存到——瀏覽器拒絕寫入（可能是私密模式或空間不足）',
     // 續抽
@@ -416,6 +418,8 @@ export const STRINGS = {
     importOk: '✓ Restored — reloading…',
     importBad: 'That is not a backup file from this site.',
     importReadFail: 'Could not read the file, please try again.',
+    importWriteFail: 'The browser refused to write (storage full or private mode). Your local records were restored, nothing was overwritten.',
+    restartDraw: 'Start over',
     importConfirmReplace: 'Replace every record on this device with the backup? This cannot be undone.',
     saveFailed: 'Not saved — the browser refused to write (private mode or storage full)',
     // Resume

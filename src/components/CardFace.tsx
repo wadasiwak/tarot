@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { REGISTRY } from '../content/registry'
 import { useApp } from '../state'
 import { cardName } from '../lib/cardName'
@@ -11,6 +11,7 @@ export function CardFace({ index, reversed, className = '' }: { index: number; r
   const T = STRINGS[lang]
   const entry = REGISTRY[index]
   const [broken, setBroken] = useState(false)
+  useEffect(() => setBroken(false), [index]) // 同一個元件換牌（記憶卡、月曆面板）時重試載圖
   const name = cardName(entry, lang)
   const alt = `${name}${reversed ? (lang === 'en' ? ' (reversed)' : '（逆位）') : ''}`
   if (broken) {

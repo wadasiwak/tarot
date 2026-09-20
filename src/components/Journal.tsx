@@ -67,15 +67,19 @@ export function Journal() {
       if (fileRef.current) fileRef.current.value = ''
       return
     }
+    let text: string
     try {
-      const ok = importBackup(await file.text(), importMode)
-      if (ok) {
-        setBackupMsg({ ok: true, text: T.importOk })
-        setTimeout(() => location.reload(), 600)
-      } else setBackupMsg({ ok: false, text: T.importBad })
+      text = await file.text()
     } catch {
       setBackupMsg({ ok: false, text: T.importReadFail })
+      if (fileRef.current) fileRef.current.value = ''
+      return
     }
+    const result = importBackup(text, importMode)
+    if (result === 'ok') {
+      setBackupMsg({ ok: true, text: T.importOk })
+      setTimeout(() => location.reload(), 600)
+    } else setBackupMsg({ ok: false, text: result === 'bad' ? T.importBad : T.importWriteFail })
     if (fileRef.current) fileRef.current.value = ''
   }
 

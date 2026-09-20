@@ -782,7 +782,21 @@ try {
   await page.reload()
   await page.waitForSelector('.manual-entry', { timeout: 3000 })
   if (!(await page.textContent('.manual-slot:nth-child(1) .slot-card')).includes('愚者')) fail('手動輸入中途 reload 應保留已選的牌')
-  await page.evaluate(() => sessionStorage.removeItem('tarot.inflight.v1'))
+  // 主動離開（返回列）應丟掉快照；再進來是乾淨的
+  await page.click('.back-bar .home-btn')
+  await page.waitForSelector('.hero', { timeout: 3000 })
+  if (await page.evaluate(() => sessionStorage.getItem('tarot.inflight.v1'))) fail('離開手動輸入應清掉續抽快照')
+  // 續抽提示旁的「重新開始」要能回到第一步
+  await page.goto(`${BASE_URL}#draw/yesno`)
+  await page.reload()
+  await page.click('.draw-ask .btn.primary')
+  await page.waitForSelector('.cut-deck', { timeout: 6000 })
+  await page.reload()
+  await page.waitForSelector('.restart-draw', { timeout: 3000 }).catch(() => fail('續抽時應有「重新開始」'))
+  await page.click('.restart-draw')
+  await page.waitForSelector('.draw-ask', { timeout: 2000 }).catch(() => fail('重新開始應回到第一步'))
+  if (await page.evaluate(() => sessionStorage.getItem('tarot.inflight.v1'))) fail('重新開始應清掉快照')
+  await page.click('.back-bar .home-btn')
 
   // 27. 備份與還原：下載 JSON（含 app 標記與各 key）→ 清空本機 → 從檔案合併還原 → 收藏回來
   await page.goto(`${BASE_URL}#journal`)
@@ -937,7 +951,7 @@ try {
   const manifest = await (await fetch(`${BASE_URL}manifest.webmanifest`)).json()
   if (!manifest.icons.some((i) => i.purpose === 'maskable')) fail('manifest 應有 maskable icon')
   const swText = await (await fetch(`${BASE_URL}sw.js`)).text()
-  if (!swText.includes('ignoreVary') || !swText.includes('./index.html')) fail('sw.js 應 precache app shell 並 ignoreVary')
+  if (!swText.includes('ignoreVary') || !swText.includes('./index.html') || !swText.includes('tarot-cards')) fail('sw.js 應 precache app shell、ignoreVary，牌圖放獨立 cache')
   if (swText.includes('cards/major-00.jpg')) fail('sw.js 不應在安裝時 precache 78 張牌圖')
   const swReg = await page.evaluate(async () => {
     const regs = await navigator.serviceWorker.getRegistrations()

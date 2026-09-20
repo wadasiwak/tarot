@@ -4,6 +4,7 @@
 // 改成「看過就留」的 cache-first（離線能翻每日一牌與看過的牌）。
 // 跨網域（GoatCounter、姊妹作 widget）一律不攔不快取。
 const CACHE = 'tarot-__VERSION__'
+const CARDS_CACHE = 'tarot-cards' // 牌圖另放不帶版本的 cache，改版不清（否則每次部署離線牌圖全沒）
 const PRECACHE = __PRECACHE__
 
 self.addEventListener('install', (e) => {
@@ -14,7 +15,7 @@ self.addEventListener('activate', (e) => {
   e.waitUntil(
     (async () => {
       for (const key of await caches.keys()) {
-        if (key !== CACHE) await caches.delete(key)
+        if (key !== CACHE && key !== CARDS_CACHE) await caches.delete(key)
       }
       await self.clients.claim()
     })(),
@@ -41,11 +42,12 @@ self.addEventListener('fetch', (e) => {
         const shell = await cache.match('./index.html', OPTS)
         if (shell) return shell
       }
-      const hit = await cache.match(req, OPTS)
+      const isCard = url.pathname.includes('/cards/')
+      const hit = await (isCard ? caches.open(CARDS_CACHE) : Promise.resolve(cache)).then((c) => c.match(req, OPTS))
       if (hit) return hit
       const res = await fetch(req)
-      // 牌圖：看過就留
-      if (res.ok && url.pathname.includes('/cards/')) cache.put(req, res.clone())
+      // 牌圖：看過就留（waitUntil 確保 SW 不會在寫入前被回收）
+      if (res.ok && isCard) e.waitUntil(caches.open(CARDS_CACHE).then((c) => c.put(req, res.clone())))
       return res
     })(),
   )

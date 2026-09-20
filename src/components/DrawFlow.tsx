@@ -58,6 +58,18 @@ export function DrawFlow({ spread }: { spread: DrawableSpread }) {
     if (step === 'ask') return
     saveInflight<DrawSnapshot>('draw', spread, { step, question, cuts, picked, drawn, flipped, deck: deckRef.current })
   }, [spread, step, question, cuts, picked, drawn, flipped])
+  // 主動離開（返回／首頁）就丟掉快照；重新整理不會跑 unmount，所以續抽仍成立
+  useEffect(() => () => clearInflight(), [])
+
+  const restart = () => {
+    clearInflight()
+    deckRef.current = []
+    setCuts(0)
+    setPicked([])
+    setDrawn([])
+    setFlipped([])
+    setStep('ask')
+  }
 
   // 切牌：每刀在隨機位置把牌堆疊上去（真的影響牌序）
   const cut = () => {
@@ -91,7 +103,14 @@ export function DrawFlow({ spread }: { spread: DrawableSpread }) {
   return (
     <div className="draw-flow">
       <h2 className="reading-title">{def.name}</h2>
-      {resumed && <p className="resumed-note">{T.resumedNote}</p>}
+      {resumed && step !== 'ask' && (
+        <p className="resumed-note">
+          {T.resumedNote}{' '}
+          <button type="button" className="btn subtle restart-draw" onClick={restart}>
+            {T.restartDraw}
+          </button>
+        </p>
+      )}
 
       {step === 'ask' && (
         <div className="draw-ask">

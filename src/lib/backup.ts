@@ -54,7 +54,8 @@ function mergeInto(data: Record<string, unknown>): void {
     const mine = loadRecent()
     const seen = new Set(mine.map(entryKey))
     const extra = (data[K.recent] as RecentEntry[]).filter((e) => !seen.has(entryKey(e)))
-    write(K.recent, [...mine, ...extra].slice(0, 12))
+    // 新的在前：合併後依日期排序再截 12 筆，備份裡較新的不會先被砍掉
+    write(K.recent, [...mine, ...extra].sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0)).slice(0, 12))
   }
   if (Array.isArray(data[K.saved])) {
     const mine = loadSaved()
@@ -92,23 +93,38 @@ function mergeInto(data: Record<string, unknown>): void {
   }
 }
 
-// 回傳 false 表示檔案不是本站備份（格式錯誤）；寫入例外（空間不足）會往外丟。
-export function importBackup(text: string, mode: 'merge' | 'replace'): boolean {
+// 'bad'＝不是本站備份；'writeFail'＝瀏覽拒絕寫入（覆蓋模式會把本機資料復原回去）；'ok'＝完成
+export type ImportResult = 'ok' | 'bad' | 'writeFail'
+export function importBackup(text: string, mode: 'merge' | 'replace'): ImportResult {
   let obj: unknown
   try {
     obj = JSON.parse(text)
   } catch {
-    return false
+    return 'bad'
   }
-  if (!obj || typeof obj !== 'object') return false
+  if (!obj || typeof obj !== 'object') return 'bad'
   const b = obj as Partial<Backup>
-  if (b.app !== 'tarot' || typeof b.version !== 'number' || !b.data || typeof b.data !== 'object') return false
+  if (b.app !== 'tarot' || typeof b.version !== 'number' || !b.data || typeof b.data !== 'object') return 'bad'
   const data = Object.fromEntries(Object.entries(b.data).filter(([k]) => ALL_KEYS.includes(k)))
-  if (mode === 'replace') {
-    for (const k of ALL_KEYS) localStorage.removeItem(k)
-    for (const [k, v] of Object.entries(data)) write(k, v)
-  } else {
-    mergeInto(data)
+  // 先把本機現況留一份：寫入途中丟例外（空間不足／私密模式）就整包復原，不留半套
+  const snapshot = new Map<string, string | null>(ALL_KEYS.map((k) => [k, localStorage.getItem(k)]))
+  try {
+    if (mode === 'replace') {
+      for (const k of ALL_KEYS) localStorage.removeItem(k)
+      for (const [k, v] of Object.entries(data)) write(k, v)
+    } else {
+      mergeInto(data)
+    }
+    return 'ok'
+  } catch {
+    for (const [k, v] of snapshot) {
+      try {
+        if (v === null) localStorage.removeItem(k)
+        else localStorage.setItem(k, v)
+      } catch {
+        // 連復原都寫不進去，只能放棄
+      }
+    }
+    return 'writeFail'
   }
-  return true
 }
