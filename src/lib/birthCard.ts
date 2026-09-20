@@ -22,8 +22,9 @@ export function birthCardNumber(year: number, month: number, day: number): numbe
   return reduceToMajor(digitSum(year) + digitSum(month) + digitSum(day))
 }
 
+// 年度牌＝生日月日＋當年年份，算法與生日牌完全相同（加法可交換），只是換掉年份
 export function yearCardNumber(month: number, day: number, year: number): number {
-  return reduceToMajor(digitSum(month) + digitSum(day) + digitSum(year))
+  return birthCardNumber(year, month, day)
 }
 
 // YYYY-MM-DD → [y, m, d]；不合法回 null

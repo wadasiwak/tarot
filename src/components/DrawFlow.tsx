@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { clearInflight, loadInflight, saveInflight } from '../lib/inflight'
 import { getSpreads, SPREAD_SIZE } from '../content/positions'
-import { REGISTRY } from '../content/registry'
 import { shuffledDeck, drawFromDeck, type DrawnCard } from '../lib/draw'
 import type { DrawableSpread } from '../lib/share'
 import { useApp } from '../state'
+import { cardNameAt } from '../lib/cardName'
 import { STRINGS } from '../lib/i18n'
 import { CardBack, CardFace } from './CardFace'
 
@@ -188,7 +188,7 @@ export function DrawFlow({ spread }: { spread: DrawableSpread }) {
                 </div>
                 {flipped[i] && (
                   <p className="card-caption small">
-                    {lang === 'en' ? REGISTRY[c.index].nameEn : REGISTRY[c.index].name}
+                    {cardNameAt(c.index, lang)}
                     <span className={`ori-badge ${c.reversed ? 'rev' : 'up'}`}>{c.reversed ? T.reversed : T.upright}</span>
                   </p>
                 )}

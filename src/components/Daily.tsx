@@ -4,6 +4,7 @@ import { getCard } from '../content'
 import { dailyDraw, todayStr } from '../lib/seed'
 import { loadName, saveName, loadNames, rememberName, recordDaily, streakOf, loadDailyHistory, setDailyNote, lastWriteFailed } from '../lib/storage'
 import { useApp } from '../state'
+import { cardName } from '../lib/cardName'
 import { STRINGS } from '../lib/i18n'
 import { CardFace, CardBack } from './CardFace'
 import { CopyForAI } from './CopyForAI'
@@ -25,7 +26,7 @@ export function Daily({ date }: { date?: string }) {
   const card = getCard(entry.id, lang)
   const r = card ? (drawn.reversed ? card.reversed : card.upright) : null
   const knownNames = loadNames()
-  const displayName = lang === 'en' ? entry.nameEn : entry.name
+  const displayName = cardName(entry, lang)
 
   const isToday = day === todayStr()
 

@@ -8,19 +8,13 @@ import { useApp } from '../state'
 import { STRINGS } from '../lib/i18n'
 import { todayStr } from '../lib/seed'
 import { recordQuizAnswer } from '../lib/storage'
+import { shuffle } from '../lib/draw'
+import { cardName } from '../lib/cardName'
 import { CardFace } from './CardFace'
 
 const ROUND_SIZE = 10
 const OPTION_COUNT = 4
 
-function shuffle<T>(list: T[]): T[] {
-  const a = [...list]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
-}
 
 interface QuizQ {
   id: string // 正解牌
@@ -54,7 +48,7 @@ export function StudyQuiz({ onExit }: { onExit: () => void }) {
   const kwOf = (id: string) => (getCard(id, lang)?.upright.keywords ?? []).join(lang === 'en' ? ' / ' : '・')
   const nameOf = (id: string) => {
     const e = REGISTRY[indexOfCard(id)]
-    return lang === 'en' ? e.nameEn : e.name
+    return cardName(e, lang)
   }
 
   if (finished) {

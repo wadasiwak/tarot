@@ -1,4 +1,5 @@
 // 內容驗證：78 張完備性、欄位字數、枚舉白名單、簡體字（中文）、跨牌重複句、verdict 分布，
+// 牌陣位置文案（長度＝SPREAD_SIZE、BRIDGE_FIELDS 對齊、zh/en bridge 一致）、生日牌／年度牌 44 則字數，
 // 以及英文版（src/content/en/）的字數規範與「verdict 必須與中文一致」交叉檢查。
 // 單檔模式（給內容 agent 自驗）：
 //   中文：node scripts/check-content.mjs src/content/wands-01-07.ts
@@ -216,6 +217,59 @@ if (!singleFile) {
         else seen.set(key, `${c.id}.${side}.${f}`)
       }
   }
+
+  // ── 牌陣位置文案（positions.ts）與生日牌／年度牌文案（mycard.ts）────
+  console.log('\n== 牌陣位置 positions.ts ==')
+  const pos = await loadModule('src/content/positions.ts')
+  for (const [lang, table] of [['zh', pos.SPREADS], ['en', pos.SPREADS_EN]]) {
+    for (const [id, size] of Object.entries(pos.SPREAD_SIZE)) {
+      const def = table[id]
+      if (!def) { err(`[${lang}] positions 缺牌陣 ${id}`); continue }
+      if (!def.name || !def.intro) err(`[${lang}] ${id} 缺 name/intro`)
+      if (def.positions.length !== size) err(`[${lang}] ${id} positions 長度 ${def.positions.length} ≠ SPREAD_SIZE ${size}`)
+      def.positions.forEach((p, i) => {
+        if (!p.title) err(`[${lang}] ${id}[${i}] 缺 title`)
+        if (typeof p.frame !== 'string' || p.frame.length < (lang === 'zh' ? 15 : 30)) err(`[${lang}] ${id}[${i}] frame 過短`)
+        if (lang === 'zh') for (const t of [p.title, p.frame, p.bridge ?? '']) if (SIMPLIFIED_RE.test(t)) err(`${id}[${i}] 疑似簡體字：${t.match(SIMPLIFIED_RE)[0]}`)
+      })
+      if (id !== 'daily') {
+        const fields = pos.BRIDGE_FIELDS[id]
+        if (!fields) err(`BRIDGE_FIELDS 缺 ${id}`)
+        else if (fields.length !== size) err(`BRIDGE_FIELDS.${id} 長度 ${fields.length} ≠ SPREAD_SIZE ${size}`)
+        else fields.forEach((fs, i) => {
+          if (fs.includes('bridge') && !def.positions[i]?.bridge) err(`[${lang}] ${id}[${i}] BRIDGE_FIELDS 要 bridge 但 positions 沒寫銜接句`)
+        })
+      }
+    }
+  }
+  // zh/en 的 bridge 有無要一致（英文漏寫會靜默少一句 💡）
+  for (const id of Object.keys(pos.SPREAD_SIZE)) {
+    const zhB = pos.SPREADS[id].positions.map((p) => !!p.bridge)
+    const enB = pos.SPREADS_EN[id]?.positions.map((p) => !!p.bridge) ?? []
+    if (JSON.stringify(zhB) !== JSON.stringify(enB)) err(`${id} zh/en 的 bridge 有無不一致：${JSON.stringify(zhB)} vs ${JSON.stringify(enB)}`)
+  }
+  console.log(`  ${Object.keys(pos.SPREAD_SIZE).length} 個牌陣檢查完`)
+
+  console.log('\n== 生日牌／年度牌 mycard.ts ==')
+  const my = await loadModule('src/content/mycard.ts')
+  const MY_LEN = { zh: [60, 100], en: [150, 320] }
+  for (const [lang, table] of [['zh', my.MYCARD], ['en', my.MYCARD_EN]]) {
+    for (let n = 0; n <= 21; n++) {
+      const id = `major-${String(n).padStart(2, '0')}`
+      const t = table[id]
+      if (!t) { err(`[${lang}] mycard 缺 ${id}`); continue }
+      for (const f of ['birth', 'year']) {
+        const [min, max] = MY_LEN[lang]
+        const len = t[f]?.length ?? 0
+        if (len < Math.floor(min * 0.7) || len > Math.ceil(max * 1.6)) err(`[${lang}] mycard ${id}.${f} 長度 ${len} 超出硬界（規範 ${min}–${max}）`)
+        else if (len < min || len > max) warn(`[${lang}] mycard ${id}.${f} 長度 ${len} 略出規範 ${min}–${max}`)
+        if (lang === 'zh' && SIMPLIFIED_RE.test(t[f] ?? '')) err(`mycard ${id}.${f} 疑似簡體字`)
+      }
+    }
+    const extra = Object.keys(table).filter((k) => !/^major-(0\d|1\d|2[01])$/.test(k))
+    if (extra.length) err(`[${lang}] mycard 多出非大牌 id：${extra.join(', ')}`)
+  }
+  console.log('  22 張 × 2 語 × 2 欄檢查完')
 
   // 圖檔存在
   let missingImg = 0

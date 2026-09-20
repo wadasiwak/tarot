@@ -7,6 +7,7 @@ import type { DrawnCard } from '../lib/draw'
 import type { DrawableSpread } from '../lib/share'
 import { searchCards } from '../lib/search'
 import { useApp } from '../state'
+import { cardName } from '../lib/cardName'
 import { STRINGS } from '../lib/i18n'
 import { CardFace } from './CardFace'
 
@@ -41,7 +42,6 @@ export function ManualEntry({ spread }: { spread: DrawableSpread }) {
   const tabLabel = (key: (typeof TAB_KEYS)[number]) =>
     key === 'major' ? T.tabMajor : lang === 'en' ? SUIT_NAMES_EN[key] : SUIT_NAMES[key]
 
-  const cardName = (e: RegistryEntry) => (lang === 'en' ? e.nameEn : e.name)
 
   const confirmOrientation = (reversed: boolean) => {
     if (!pendingId) return
@@ -73,7 +73,7 @@ export function ManualEntry({ spread }: { spread: DrawableSpread }) {
             <span className="slot-pos">{p.title}</span>
             {chosen[i] ? (
               <span className="slot-card">
-                {cardName(REGISTRY[chosen[i].index])}
+                {cardName(REGISTRY[chosen[i].index], lang)}
                 <span className={`ori-badge ${chosen[i].reversed ? 'rev' : 'up'}`}>
                   {chosen[i].reversed ? T.reversed : T.upright}
                 </span>
@@ -97,7 +97,7 @@ export function ManualEntry({ spread }: { spread: DrawableSpread }) {
 
       {pendingId ? (
         <div className="orientation-pick">
-          <p className="pick-hint">{T.orientationAsk(cardName(REGISTRY[indexOfCard(pendingId)]))}</p>
+          <p className="pick-hint">{T.orientationAsk(cardName(REGISTRY[indexOfCard(pendingId)], lang))}</p>
           <div className="orientation-options">
             <button type="button" className="orientation-btn" onClick={() => confirmOrientation(false)}>
               <CardFace index={indexOfCard(pendingId)} reversed={false} />
@@ -147,7 +147,7 @@ export function ManualEntry({ spread }: { spread: DrawableSpread }) {
                   onClick={() => setPendingId(e.id)}
                 >
                   <CardFace index={idx} reversed={false} />
-                  <span className="grid-name">{cardName(e)}</span>
+                  <span className="grid-name">{cardName(e, lang)}</span>
                 </button>
               )
             })}

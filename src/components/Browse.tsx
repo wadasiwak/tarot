@@ -3,6 +3,7 @@ import { REGISTRY, indexOfCard, type RegistryEntry } from '../content/registry'
 import { SUIT_NAMES, SUIT_NAMES_EN } from '../content/types'
 import { searchCards } from '../lib/search'
 import { useApp } from '../state'
+import { cardName } from '../lib/cardName'
 import { STRINGS } from '../lib/i18n'
 import { CardFace } from './CardFace'
 
@@ -60,7 +61,7 @@ export function Browse() {
             onClick={() => go({ name: 'detail', id: e.id, reversed: false })}
           >
             <CardFace index={indexOfCard(e.id)} reversed={false} />
-            <span className="grid-name">{lang === 'en' ? e.nameEn : e.name}</span>
+            <span className="grid-name">{cardName(e, lang)}</span>
           </button>
         ))}
       </div>

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { REGISTRY } from '../content/registry'
 import { useApp } from '../state'
+import { cardName } from '../lib/cardName'
 import { STRINGS } from '../lib/i18n'
 
 // 牌圖：逆位整張旋轉 180°；size 由外層 CSS 控。
@@ -10,7 +11,7 @@ export function CardFace({ index, reversed, className = '' }: { index: number; r
   const T = STRINGS[lang]
   const entry = REGISTRY[index]
   const [broken, setBroken] = useState(false)
-  const name = lang === 'en' ? entry.nameEn : entry.name
+  const name = cardName(entry, lang)
   const alt = `${name}${reversed ? (lang === 'en' ? ' (reversed)' : '（逆位）') : ''}`
   if (broken) {
     return (

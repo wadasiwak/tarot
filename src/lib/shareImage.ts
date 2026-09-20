@@ -1,4 +1,5 @@
 // 分享圖卡：把抽牌結果畫成一張 900×1200 的圖（canvas），
+import { cardName as cardNameOf } from './cardName'
 // 手機優先走系統分享面板（navigator.share，可直傳 LINE/IG），否則下載 PNG。
 import { REGISTRY } from '../content/registry'
 import { getCard } from '../content'
@@ -120,7 +121,7 @@ export async function makeShareImage(opts: ShareImageOpts): Promise<Blob> {
     }
     // 牌名＋正逆位（網格模式縮字級、逆位用短標）
     ctx.fillStyle = '#e6ddf2'
-    const cardName = lang === 'en' ? entry.nameEn : entry.name
+    const cardName = cardNameOf(entry, lang)
     const ori = grid
       ? lang === 'en'
         ? c.reversed

@@ -5,6 +5,7 @@ import { getMyCard } from '../content/mycard'
 import { birthCardNumber, parseBirthday, yearCardNumber } from '../lib/birthCard'
 import { loadBirthday, saveBirthday } from '../lib/storage'
 import { useApp } from '../state'
+import { cardName } from '../lib/cardName'
 import { todayStr } from '../lib/seed'
 import { STRINGS } from '../lib/i18n'
 import { CardFace } from './CardFace'
@@ -84,7 +85,7 @@ export function MyCard() {
                   <div className="reading-card-body">
                     <div className="reading-card-img">
                       <CardFace index={s.index} reversed={false} />
-                      <p className="card-caption">{lang === 'en' ? entry.nameEn : entry.name}</p>
+                      <p className="card-caption">{cardName(entry, lang)}</p>
                     </div>
                     <div className="reading-card-text">
                       {card && <p className="keywords">{card.upright.keywords.map((k) => `#${k}`).join(' ')}</p>}

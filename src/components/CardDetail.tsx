@@ -3,6 +3,7 @@ import { REGISTRY, indexOfCard } from '../content/registry'
 import { getCard } from '../content'
 import { SUIT_NAMES, SUIT_NAMES_EN, VERDICT_LABELS, VERDICT_LABELS_EN, type CardReading } from '../content/types'
 import { useApp } from '../state'
+import { cardName, cardNameAlt } from '../lib/cardName'
 import { STRINGS, type Strings, type Lang } from '../lib/i18n'
 import { todayStr } from '../lib/seed'
 import { addToStudy, loadStudy } from '../lib/storage'
@@ -62,8 +63,7 @@ export function CardDetail({ id, reversed }: { id: string; reversed: boolean }) 
         </div>
         <div className="detail-title">
           <h2>
-            {lang === 'en' ? entry.nameEn : entry.name}{' '}
-            <span className="name-en">{lang === 'en' ? entry.name : entry.nameEn}</span>
+            {cardName(entry, lang)} <span className="name-en">{cardNameAlt(entry, lang)}</span>
           </h2>
           {card && card.arcana !== 'major' ? (
             <button

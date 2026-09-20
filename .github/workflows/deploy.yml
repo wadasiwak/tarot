@@ -21,10 +21,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: '22.18' # e2e/check 直接 import .ts，靠 Node 22.18+ 的原生 type stripping
       - run: npm ci --ignore-scripts
+      - run: npm run lint
       - run: npm run check
       - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

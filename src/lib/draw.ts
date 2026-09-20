@@ -15,13 +15,18 @@ function cryptoFloat(): number {
   return buf[0] / 4294967296
 }
 
-export function shuffledDeck(): number[] {
-  const deck = Array.from({ length: CARD_COUNT }, (_, i) => i)
-  for (let i = deck.length - 1; i > 0; i--) {
+// Fisher–Yates（crypto 亂數）；抽牌與測驗選項共用同一份
+export function shuffle<T>(list: T[]): T[] {
+  const a = [...list]
+  for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(cryptoFloat() * (i + 1))
-    ;[deck[i], deck[j]] = [deck[j], deck[i]]
+    ;[a[i], a[j]] = [a[j], a[i]]
   }
-  return deck
+  return a
+}
+
+export function shuffledDeck(): number[] {
+  return shuffle(Array.from({ length: CARD_COUNT }, (_, i) => i))
 }
 
 export function drawFromDeck(deck: number[], count: number): DrawnCard[] {

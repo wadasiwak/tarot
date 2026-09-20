@@ -6,6 +6,7 @@ import { computeStats } from '../lib/stats'
 import { lastWriteFailed, loadDailyHistory, loadName, loadNames, renameDailyName, setDailyNote, streakOf, type SavedReading } from '../lib/storage'
 import { todayStr } from '../lib/seed'
 import { useApp } from '../state'
+import { cardNameAt, cardSummary } from '../lib/cardName'
 import { STRINGS } from '../lib/i18n'
 import { CardFace } from './CardFace'
 
@@ -99,11 +100,6 @@ export function Journal() {
     setWho(to)
     setRenaming(false)
   }
-
-  const cardSummary = (e: SavedReading) =>
-    e.cards
-      .map((c) => `${lang === 'en' ? REGISTRY[c.index].nameEn : REGISTRY[c.index].name}${c.reversed ? T.revShort : ''}`)
-      .join(lang === 'en' ? ', ' : '、')
 
   const openSaved = (e: SavedReading) =>
     e.spread === 'daily'
@@ -210,7 +206,7 @@ export function Journal() {
               <span className="cal-day">{i + 1}</span>
               {rec && (
                 <span className="cal-card-name">
-                  {lang === 'en' ? REGISTRY[rec.index].nameEn : REGISTRY[rec.index].name}
+                  {cardNameAt(rec.index, lang)}
                   {rec.reversed ? T.revShort : ''}
                 </span>
               )}
@@ -229,7 +225,7 @@ export function Journal() {
           <div className="cal-day-body">
             <p className="card-caption small">
               <span className="recent-date">{selectedDay}</span>
-              {lang === 'en' ? REGISTRY[history[selectedDay].index].nameEn : REGISTRY[history[selectedDay].index].name}
+              {cardNameAt(history[selectedDay].index, lang)}
               <span className={`ori-badge ${history[selectedDay].reversed ? 'rev' : 'up'}`}>{history[selectedDay].reversed ? T.reversed : T.upright}</span>
             </p>
             <textarea
@@ -324,7 +320,7 @@ export function Journal() {
                   onClick={() => go({ name: 'detail', id: REGISTRY[t.index].id, reversed: false })}
                 >
                   <span className="top-rank">{rank + 1}</span>
-                  <span className="top-name">{lang === 'en' ? REGISTRY[t.index].nameEn : REGISTRY[t.index].name}</span>
+                  <span className="top-name">{cardNameAt(t.index, lang)}</span>
                   <span className="top-bar-track">
                     <span className="top-bar" style={{ width: `${(t.count / stats.top[0].count) * 100}%` }} />
                   </span>
@@ -358,7 +354,7 @@ export function Journal() {
               >
                 <span className="recent-date">{e.at}</span>
                 <span className="recent-spread">{spreads[e.spread].name}</span>
-                <span className="recent-cards">{cardSummary(e)}</span>
+                <span className="recent-cards">{cardSummary(e.cards, lang)}</span>
                 <span className="saved-caret">{open ? '▾' : '▸'}</span>
               </button>
               {open && (

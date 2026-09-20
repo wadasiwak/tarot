@@ -282,6 +282,20 @@ export const SPREADS_EN: Record<SpreadId, { name: string; intro: string; positio
   },
 }
 
+// 解讀頁每個位置的「💡 白話句」來源：牌義哪一欄，或 'bridge'＝該位置的銜接句（上面 positions[].bridge）。
+// 新增牌陣時在這裡補一列；長度必須等於 SPREAD_SIZE（check-content 會驗）。
+export type BridgeField = 'past' | 'present' | 'other' | 'love' | 'career' | 'advice' | 'bridge'
+export const BRIDGE_FIELDS: Record<Exclude<SpreadId, 'daily'>, BridgeField[][]> = {
+  three: [['past'], ['present'], ['advice']],
+  yesno: [['advice']],
+  choice: [['advice'], ['advice']],
+  relation: [['present'], ['other'], ['advice']],
+  tree: [['present'], ['other'], ['past'], ['love'], ['bridge'], ['advice']],
+  month: [['bridge'], ['career'], ['love'], ['bridge'], ['advice']],
+  // 凱爾特十字：位置層級銜接句；最後「結果」位再補這張牌的行動建議
+  celtic: [['bridge'], ['bridge'], ['bridge'], ['bridge'], ['bridge'], ['bridge'], ['bridge'], ['bridge'], ['bridge'], ['bridge', 'advice']],
+}
+
 export function getSpreads(lang: 'zh' | 'en') {
   return lang === 'en' ? SPREADS_EN : SPREADS
 }

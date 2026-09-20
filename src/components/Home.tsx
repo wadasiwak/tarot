@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { REGISTRY } from '../content/registry'
+import { cardSummary } from '../lib/cardName'
 import { getSpreads } from '../content/positions'
 import { useApp, type HomeNotice, type View } from '../state'
 import { STRINGS, type Strings } from '../lib/i18n'
@@ -156,11 +156,7 @@ export function Home({ notice }: { notice?: HomeNotice }) {
                 >
                   <span className="recent-date">{e.at}</span>
                   <span className="recent-spread">{spreads[e.spread].name}</span>
-                  <span className="recent-cards">
-                    {e.cards
-                      .map((c) => `${lang === 'en' ? REGISTRY[c.index].nameEn : REGISTRY[c.index].name}${c.reversed ? T.revShort : ''}`)
-                      .join(lang === 'en' ? ', ' : '、')}
-                  </span>
+                  <span className="recent-cards">{cardSummary(e.cards, lang)}</span>
                   {e.question && <span className="recent-q">「{e.question}」</span>}
                 </button>
                 <div className="recent-side">

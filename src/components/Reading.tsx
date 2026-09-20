@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { REGISTRY } from '../content/registry'
 import { getCard } from '../content'
-import { getSpreads } from '../content/positions'
+import { BRIDGE_FIELDS, getSpreads } from '../content/positions'
 import { VERDICT_LABELS, VERDICT_LABELS_EN } from '../content/types'
 import type { DrawnCard } from '../lib/draw'
 import { compareChoice } from '../lib/verdict'
@@ -9,6 +9,7 @@ import { shareUrl, type DrawableSpread } from '../lib/share'
 import { entryKey, lastWriteFailed } from '../lib/storage'
 import { todayStr } from '../lib/seed'
 import { useApp } from '../state'
+import { cardName } from '../lib/cardName'
 import { STRINGS } from '../lib/i18n'
 import { CardFace } from './CardFace'
 import { CopyForAI } from './CopyForAI'
@@ -107,7 +108,7 @@ export function Reading({ spread, cards, question }: { spread: DrawableSpread; c
                 <div className="reading-card-img">
                   <CardFace index={c.index} reversed={c.reversed} />
                   <p className="card-caption">
-                    {lang === 'en' ? entry.nameEn : entry.name}
+                    {cardName(entry, lang)}
                     <button
                       type="button"
                       className={`ori-badge clickable ${c.reversed ? 'rev' : 'up'}`}
@@ -129,32 +130,15 @@ export function Reading({ spread, cards, question }: { spread: DrawableSpread; c
                       </p>
                     )}
                     <p className="core">{item.r.core}</p>
-                    {(() => {
-                      // 位置白話句：三張=過去/現在/建議；關係=我(present)/對方(other)/走向(建議)；
-                      // 關係之樹=我(present)/對方(other)/根基(past)/養分(love)/心結(位置銜接句)/走向(建議)；
-                      // 月度展望=主題(位置銜接句)/工作學業(career)/感情人際(love)/身心(位置銜接句)/提醒(建議)；
-                      // 凱爾特十字=位置層級銜接句（positions.ts），最後的「結果」位再補上這張牌的行動建議
-                      const bridge =
-                        spread === 'celtic'
-                          ? pos.bridge
-                          : spread === 'three'
-                            ? [item.r.past, item.r.present, item.r.advice][i]
-                            : spread === 'relation'
-                              ? [item.r.present, item.r.other, item.r.advice][i]
-                              : spread === 'tree'
-                                ? [item.r.present, item.r.other, item.r.past, item.r.love, pos.bridge, item.r.advice][i]
-                                : spread === 'month'
-                                  ? [pos.bridge, item.r.career, item.r.love, pos.bridge, item.r.advice][i]
-                                  : item.r.advice
-                      return (
-                        <>
-                          {bridge && <p className="advice">💡 {bridge}</p>}
-                          {spread === 'celtic' && i === cards.length - 1 && (
-                            <p className="advice">💡 {item.r.advice}</p>
-                          )}
-                        </>
-                      )
-                    })()}
+                    {/* 位置白話句：每個位置取牌義哪一欄（或位置銜接句）由 positions.ts 的 BRIDGE_FIELDS 查表決定 */}
+                    {BRIDGE_FIELDS[spread][i].map((field) => {
+                      const text = field === 'bridge' ? pos.bridge : item.r[field]
+                      return text ? (
+                        <p className="advice" key={field}>
+                          💡 {text}
+                        </p>
+                      ) : null
+                    })}
                     <button
                       type="button"
                       className="btn subtle"

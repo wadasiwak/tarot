@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { REGISTRY, indexOfCard } from '../content/registry'
 import { getCard } from '../content'
 import { useApp } from '../state'
+import { cardName, cardNameAlt } from '../lib/cardName'
 import { STRINGS } from '../lib/i18n'
 import { todayStr } from '../lib/seed'
 import { MASTERED_INTERVAL, type Rating } from '../lib/srs'
@@ -130,14 +131,14 @@ function FlashcardSession({ onExit }: { onExit: () => void }) {
               <CardFace index={indexOfCard(id)} reversed={false} />
             </div>
             <p className="study-card-name">
-              {lang === 'en' ? entry.nameEn : entry.name} <span className="name-en">{lang === 'en' ? entry.name : entry.nameEn}</span>
+              {cardName(entry, lang)} <span className="name-en">{cardNameAlt(entry, lang)}</span>
             </p>
             <p className="study-flip-hint">{T.flipHint}</p>
           </div>
         ) : (
           <div className="study-back flip-in">
             <p className="study-card-name">
-              {lang === 'en' ? entry.nameEn : entry.name} <span className="name-en">{lang === 'en' ? entry.name : entry.nameEn}</span>
+              {cardName(entry, lang)} <span className="name-en">{cardNameAlt(entry, lang)}</span>
             </p>
             <p className="study-kw">
               <span className="ori-badge up">{T.upright}</span> {card.upright.keywords.map((k) => `#${k}`).join(' ')}
